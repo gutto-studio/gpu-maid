@@ -1,5 +1,9 @@
 # macOS menu bar (SwiftBar)
 
+> **First-party alternative:** `scripts/build_macos_app.sh` builds
+> `gpumaid-bar.app` — a native menu-bar app with the same features and no
+> SwiftBar dependency. This plugin is for people who already run SwiftBar.
+
 The maid in your menu bar: live GPU memory / utilization / temperature,
 the resident roster with one-click wake & sleep, the make-room queue,
 per-process VRAM attribution and recent events.

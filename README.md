@@ -128,7 +128,7 @@ policies:
 | --------- | -------------------------------- | ----------------------------------------------------------------------------- |
 | `agent/`  | Windows (native, no WSL2/Docker) | HTTP API · resident registry · VRAM gate + queue · wake/cooldown · watchdog · master switch · GPU util/temp telemetry |
 | `cli/`    | macOS or any box                 | thin client: `connect / list / wake / ensure / sleep / touch / events / master` |
-| desktop   | macOS menu bar · Windows tray    | SwiftBar plugin + PowerShell tray dot ([below](#menu-bar--system-tray))          |
+| desktop   | macOS menu bar · Windows tray    | first-party Swift app + SwiftBar plugin + PowerShell tray dot ([below](#menu-bar--system-tray)) |
 | transport | LAN / Tailscale                  | boring on purpose                                                              |
 
 ## Docs
@@ -152,16 +152,21 @@ the maid's back, and must not flip the master switch unless the human asked.
 
 ## Menu bar & system tray
 
-Two desktop companions ship in the repo, both zero-dependency scripts:
+Desktop companions, all script-built, zero third-party dependencies:
 
-- **macOS**: a [SwiftBar](https://swiftbar.app) plugin in [`menubar/`](menubar/README.md) —
-  live GPU memory/util/temperature in the bar, resident roster with one-click
-  wake & sleep, the make-room queue and recent events in the dropdown.
+- **macOS (first-party)**: `gpumaid-bar.app` — a native AppKit menu-bar app in
+  one Swift file ([desktop/macos/](desktop/macos/gpumaid-bar.swift)). Build and
+  run with two commands (`scripts/build_macos_app.sh` + `open`); shows live
+  GPU memory/util/temperature color-coded in the bar, one-click wake/sleep,
+  the make-room queue, per-process VRAM and recent events in the menu.
+- **macOS (alternative)**: a [SwiftBar](https://swiftbar.app) plugin in
+  [`menubar/`](menubar/README.md) for people who already run SwiftBar.
 - **Windows**: a PowerShell + WinForms tray dot in [`tray/`](tray/README.md) —
   color-coded free VRAM (green/orange/red, purple when the master switch is
   off), right-click to wake/sleep residents or flip the master switch.
 
-No Xcode, no Electron, no web UI — script-driven, like the rest of the house.
+No Xcode project, no Electron, no web UI — script-driven, like the rest of
+the house.
 
 ## When you don't need it
 
@@ -186,7 +191,8 @@ patterns in daily production (TTS + image + video + LLM sharing one consumer GPU
       [configuration reference](docs/configuration.md) · [HTTP API](docs/api.md)
 - [x] pip packaging (pyproject: `gpumaid` + `gpumaid-agent` entry points) ·
       CI (unittest + markdownlint on Linux/Windows)
-- [x] macOS menu-bar plugin (SwiftBar): [menubar/](menubar/README.md)
+- [x] macOS menu bar: first-party app ([desktop/macos](desktop/macos/gpumaid-bar.swift))
+      + SwiftBar plugin ([menubar/](menubar/README.md))
 - [x] Windows system-tray companion (PowerShell, zero-dep): [tray/](tray/README.md)
 - [x] Real-GPU validation on a live Windows box (RTX 4070S, 15/15 checks —
       rerun anytime with `python scripts/validate_on_pc.py` on the GPU box)

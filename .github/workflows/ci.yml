@@ -28,6 +28,13 @@ jobs:
             (Join-Path $PWD 'tray/gpu-maid-tray.ps1'), [ref]$null, [ref]$errs)
           if ($errs.Count) { $errs | ForEach-Object { $_.Message }; exit 1 }
 
+  macos-app:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: menu-bar app compiles
+        run: swiftc -O desktop/macos/gpumaid-bar.swift -o /tmp/gpumaid-bar
+
   lint:
     runs-on: ubuntu-latest
     steps:
