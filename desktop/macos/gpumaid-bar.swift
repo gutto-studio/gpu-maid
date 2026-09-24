@@ -238,7 +238,7 @@ final class PanelVC: NSViewController {
         line.alignment = .centerY
         line.spacing = 6
         line.translatesAutoresizingMaskIntoConstraints = false
-        line.widthAnchor.constraint(equalToConstant: 268).isActive = true
+        line.widthAnchor.constraint(equalToConstant: 236).isActive = true
 
         let alive = (r["alive"] as? Bool) ?? false
         let suspended = (r["suspended"] as? Bool) ?? false
@@ -260,18 +260,23 @@ final class PanelVC: NSViewController {
         spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
         line.addView(spacer, in: .top)
 
-        // action button (right-aligned, like the mockup's play/pause);
-        // rows without a possible action get no button at all
+        // action button column — every row carries one for a aligned rhythm;
+        // read-only rows show a muted dot placeholder
         let canSleep = alive && !isAlways
         let canWake = !alive && r["start"] != nil && protocolName != "always_on"
-        guard canSleep || canWake else { return line }
-        let btn = NSButton(title: canSleep ? "⏸" : "▶", target: self,
-                           action: #selector(onAction(_:)))
+        let btn = NSButton(title: canSleep ? "⏸" : (canWake ? "▶" : "·"),
+                           target: self,
+                           action: canSleep || canWake
+                               ? #selector(onAction(_:)) : nil)
         btn.bezelStyle = .rounded
         btn.controlSize = .small
         btn.font = .systemFont(ofSize: 11)
-        btn.identifier = NSUserInterfaceItemIdentifier(
-            "/\(canSleep ? "sleep" : "wake")/\(name)")
+        if canSleep || canWake {
+            btn.identifier = NSUserInterfaceItemIdentifier(
+                "/\(canSleep ? "sleep" : "wake")/\(name)")
+        } else {
+            btn.isEnabled = false
+        }
         line.addView(btn, in: .top)
         return line
     }
