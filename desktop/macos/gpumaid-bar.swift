@@ -152,14 +152,20 @@ final class PanelVC: NSViewController {
             return
         }
 
-        // in-progress: gate state
+        // activity: gate queue first, else who is on the job
+        let residentsDict = d["residents"] as? [String: [String: Any]] ?? [:]
         let gate = d["gate"] as? [String: Any]
+        let aliveList = residentsDict
+            .filter { ($0.value["alive"] as? Bool) == true }
+            .keys.sorted()
         if let holder = gate?["holder"] as? String, !holder.isEmpty {
             let waiting = (gate?["waiting"] as? [String])?.joined(separator: ", ") ?? ""
             status.stringValue = "making room: \(holder)"
                 + (waiting.isEmpty ? "" : "  (waiting: \(waiting))")
         } else if let off = d["master_off"] as? Bool, off {
             status.stringValue = "master off — the house is asleep"
+        } else if !aliveList.isEmpty {
+            status.stringValue = "on the job: " + aliveList.joined(separator: ", ")
         } else {
             status.stringValue = "All quiet — the house is calm"
         }
@@ -185,7 +191,6 @@ final class PanelVC: NSViewController {
 
         // resident rows
         clear(rows)
-        let residentsDict = d["residents"] as? [String: [String: Any]] ?? [:]
         var anyShown = false
         for name in residentsDict.keys.sorted() {
             guard let r = residentsDict[name] else { continue }
@@ -255,21 +260,18 @@ final class PanelVC: NSViewController {
         spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
         line.addView(spacer, in: .top)
 
-        // action button (right-aligned, like the mockup's play/pause)
-        let btn = NSButton(title: alive ? "⏸" : "▶", target: self,
+        // action button (right-aligned, like the mockup's play/pause);
+        // rows without a possible action get no button at all
+        let canSleep = alive && !isAlways
+        let canWake = !alive && r["start"] != nil && protocolName != "always_on"
+        guard canSleep || canWake else { return line }
+        let btn = NSButton(title: canSleep ? "⏸" : "▶", target: self,
                            action: #selector(onAction(_:)))
         btn.bezelStyle = .rounded
         btn.controlSize = .small
         btn.font = .systemFont(ofSize: 11)
-        let canSleep = alive && !isAlways
-        let canWake = !alive && r["start"] != nil && protocolName != "always_on"
-        if canSleep || canWake {
-            btn.identifier = NSUserInterfaceItemIdentifier(
-                "/\(canSleep ? "sleep" : "wake")/\(name)")
-        } else {
-            btn.isEnabled = false
-            btn.title = isAlways ? "·" : "▶"
-        }
+        btn.identifier = NSUserInterfaceItemIdentifier(
+            "/\(canSleep ? "sleep" : "wake")/\(name)")
         line.addView(btn, in: .top)
         return line
     }
