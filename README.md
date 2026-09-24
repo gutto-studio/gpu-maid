@@ -10,7 +10,8 @@ English · [简体中文](README.zh-CN.md)
 **Your GPU's maid — she tucks resident models in when another line needs the bed.**
 
 <p align="center">
-  <img src="docs/architecture.svg" alt="gpu-maid architecture: a Mac client talks to the gpu-maid agent on the Windows GPU box, which arbitrates VRAM between resident services (LLM, TTS, image, video)" width="820">
+  <img src="docs/maid-hero.jpg" alt="the gpu-maid mascot: a pink-eared maid enjoying a cup of coffee in a warm cafe" width="560">
+  <br><sub><i>the maid herself, on a coffee break between jobs — art from the author's own paint line</i></sub>
 </p>
 
 `gpu-maid` is a small butler for a common household: one consumer GPU (say, a Windows
@@ -40,6 +41,10 @@ One card, several tenants — and today the scheduler is **you**:
 gpu-maid is the butler that takes that job from you.
 
 ## How a job flows
+
+<p align="center">
+  <img src="docs/architecture.svg" alt="gpu-maid architecture: a Mac client talks to the gpu-maid agent on the Windows GPU box, which arbitrates VRAM between resident services (LLM, TTS, image, video)" width="820">
+</p>
 
 1. You ask the agent for a job that needs **8 GB free** VRAM.
 2. The maid checks the resident registry: the image line is running, everyone else is asleep.

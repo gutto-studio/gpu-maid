@@ -7,11 +7,12 @@
 
 **你家显卡的女仆——别的产线要上工了，她就哄住户们去睡觉。**
 
-（英文主文档见 [README.md](README.md)，本页为中文速览。）
-
 <p align="center">
-  <img src="docs/architecture.svg" alt="gpu-maid 架构：Mac 客户端 → Windows 显卡机上的 gpu-maid agent → 同一块显卡上的多住户（LLM / TTS / 画图 / 视频）显存仲裁" width="820">
+  <img src="docs/maid-hero.jpg" alt="gpu-maid 吉祥物：粉色猫耳女仆在暖光咖啡馆里陪一杯咖啡" width="560">
+  <br><sub><i>女仆本仆，趁没活儿的空档喝杯咖啡——图出自作者自己的画图产线</i></sub>
 </p>
+
+（英文主文档见 [README.md](README.md)，本页为中文速览。）
 
 `gpu-maid` 解决一个常见家庭的烦恼：**一块消费级显卡**（比如 Windows 游戏PC）同时住着
 好几个 AI 住户——LLM、TTS 嗓子、画图、视频——而主人想从 Mac 上远程使唤它们。
@@ -32,6 +33,10 @@
 gpu-maid 就是把这份工作从你手里接走的女仆。
 
 ## 一单活儿的流程
+
+<p align="center">
+  <img src="docs/architecture.svg" alt="gpu-maid 架构：Mac 客户端 → Windows 显卡机上的 gpu-maid agent → 同一块显卡上的多住户（LLM / TTS / 画图 / 视频）显存仲裁" width="820">
+</p>
 
 1. 你向 agent 要一个**需要 8 GB 空闲显存**的活儿。
 2. 女仆翻住户名册：画图线正在上工，其余住户都睡着。
