@@ -1,5 +1,7 @@
 # gpu-maid
 
+[English](README.md) · 简体中文
+
 ![license](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![status](https://img.shields.io/badge/status-v0.1%20WIP-orange)
 
