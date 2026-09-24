@@ -19,6 +19,24 @@ Remote inference itself is a commodity: Ollama exposes a remote host, ComfyUI ex
 an API, Tailscale stitches them together. What's missing is the layer that decides
 **who runs, who sleeps, and who gets woken**. That's the maid's job.
 
+## The problem
+
+One card, several tenants — and today the scheduler is **you**:
+
+- **VRAM tug-of-war** — two services load at once and you get OOM errors, or worse,
+  silent spillover into system RAM and a 3x slowdown nobody can explain.
+- **Human scheduler fatigue** — every line switch is manual: quit Ollama, stop the
+  voice server, stare at `nvidia-smi`, start the video service, wait for the weights.
+  Five to ten minutes of babysitting per switch.
+- **Silent deaths** — long-running model servers die quietly (CUDA errors,
+  antivirus, crashes) and you find out when a job fails mysteriously.
+- **No service layer over the network** — Tailscale gets you connectivity; it doesn't
+  decide who should sleep so someone else can work.
+- **No clean way home** — when you want the GPU back for games, the AI household
+  must be hunted down process by process.
+
+gpu-maid is the butler that takes that job from you.
+
 ## How a job flows
 
 1. You ask the agent for a job that needs **8 GB free** VRAM.
@@ -28,6 +46,27 @@ an API, Tailscale stitches them together. What's missing is the layer that decid
 5. The watchdog keeps watch; anything that dies silently gets brought back.
 6. Done? The house returns to its resting posture — or you flip the master switch and
    the whole household rests.
+
+## The daily loop (target UX)
+
+Install once — the agent on the Windows box with a residents file, the CLI on your
+Mac pointed at it:
+
+```bash
+$ pip install gpu-maid            # both sides (v0.1)
+$ gpu-maid connect 192.168.1.20   # point the CLI at the maid — one time
+```
+
+After that the whole day is three sentences:
+
+```bash
+$ gpu-maid list                   # who's awake, who's asleep, VRAM headroom
+$ gpu-maid wake video             # ask for the room: maid clears, settles, wakes
+# …then use ComfyUI / Ollama's own API as usual — the maid doesn't get in the way
+$ gpu-maid master off             # done for today — the whole household rests
+```
+
+The watchdog needs no instruction at all; it's on duty whether you look or not.
 
 ## Playing nice with self-orchestrating residents
 
@@ -83,6 +122,12 @@ policies:
 | `agent/`  | Windows (native, no WSL2/Docker) | HTTP API · resident registry · VRAM gate · wake/cooldown · watchdog · master switch |
 | `cli/`    | macOS or any box                 | thin client: `list / wake / run / sleep / master on/off`                       |
 | transport | LAN / Tailscale                  | boring on purpose                                                              |
+
+## When you don't need it
+
+- One AI service on the card — no contention, no problem to solve.
+- Linux boxes as workers — GPUStack and friends already serve that world.
+- Cloud-only workflows — there's no card at home to mind.
 
 ## Status
 
