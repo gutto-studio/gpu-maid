@@ -30,7 +30,7 @@ resident's *claimed* budget — measure with `nvidia-smi` under load and round u
 ## 3. GPU box: start the maid
 
 ```bat
-python gpumaid_agent.py --config residents.json
+python -m gpumaid --config residents.json
 ```
 
 Verify locally:
@@ -43,7 +43,7 @@ curl http://127.0.0.1:9700/health
 
 ```bat
 schtasks /Create /TN gpumaid /SC ONLOGON ^
-  /TR "python C:\path\to\gpu-maid\agent\gpumaid_agent.py --config C:\path\to\residents.json"
+  /TR "cmd /c cd /d C:\path\to\gpu-maid\agent && python -m gpumaid --config C:\path\to\residents.json"
 ```
 
 > **Antivirus note:** some AV suites silently kill processes spawned from

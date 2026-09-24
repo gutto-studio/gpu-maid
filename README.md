@@ -165,7 +165,7 @@ patterns in daily production (TTS + image + video + LLM sharing one consumer GPU
 ## Roadmap
 
 - [x] `agent/` — resident registry, VRAM make-room gate, revive watchdog,
-      master switch, idle suspension (stdlib-only, single file)
+      master switch, idle suspension (stdlib-only package)
 - [x] `cli/` — thin client: `connect / list / wake / sleep / touch / master`
 - [x] `skills/gpu-maid/SKILL.md` — teach agents the loop and the house rules
 - [x] `examples/` + docs: [install](docs/install.md) ·
