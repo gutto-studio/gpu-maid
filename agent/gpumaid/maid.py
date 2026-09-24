@@ -5,12 +5,14 @@ from __future__ import annotations
 import collections
 import json
 import logging
+import os
 import subprocess
 import threading
 import time
 import urllib.request
 
 from . import DETACHED_FLAGS, IS_WIN
+from .config import validate_resident
 from .logic import plan_evictions, should_revive
 from .telemetry import compute_apps, gpu_status
 
@@ -18,12 +20,13 @@ LOG = logging.getLogger("gpumaid")
 
 
 class Maid:
-    def __init__(self, cfg, state_path, log_path=None):
+    def __init__(self, cfg, state_path, log_path=None, dropin_dir=None):
         self.residents = cfg["residents"]
         self.policies = cfg["policies"]
         self.server_cfg = cfg["server"]
         self.state_path = state_path
         self.log_path = log_path
+        self.dropin_dir = dropin_dir
         self.lock = threading.Lock()
         # the gate serializes make-room sections: two concurrent wakes would
         # otherwise evict for each other and fight over the same VRAM.
@@ -279,6 +282,62 @@ class Maid:
             with self.lock:
                 self.state[name]["last_busy"] = time.time()
 
+    # -- registration (drop-in residents) --
+
+    def register_resident(self, name, fields):
+        """Register a new resident at runtime; persisted as a residents.d
+        drop-in so it survives restarts. Refuses duplicates."""
+        fields = dict(fields or {})
+        fields.pop("name", None)
+        try:
+            validate_resident(name, fields)
+        except ValueError as e:
+            return False, str(e)
+        with self.lock:
+            if name in self.residents:
+                return False, f"{name} is already registered"
+            self.residents[name] = fields
+            self.state[name] = {
+                "alive": False, "fails": 0, "last_revive": 0.0,
+                "suspend_req": False,
+                "wanted": bool(fields.get("wanted_default", True)),
+                "last_busy": time.time(),
+            }
+        if self.dropin_dir:
+            try:
+                os.makedirs(self.dropin_dir, exist_ok=True)
+                with open(os.path.join(self.dropin_dir, name + ".json"),
+                          "w", encoding="utf-8") as f:
+                    json.dump(fields, f, ensure_ascii=False, indent=1)
+            except OSError as e:
+                return False, f"registered in memory, but drop-in write failed: {e}"
+        self._event(f"{name} registered "
+                    f"({fields.get('protocol', 'process')})")
+        return True, "registered"
+
+    def unregister_resident(self, name):
+        """Remove a drop-in registered resident. Static residents.json
+        entries must be edited by hand — the maid never deletes those."""
+        with self.lock:
+            if name not in self.residents:
+                return False, f"unknown resident {name}"
+        path = (os.path.join(self.dropin_dir, name + ".json")
+                if self.dropin_dir else None)
+        if not path or not os.path.exists(path):
+            return (False, f"{name} comes from the static residents.json; "
+                           "edit that file instead")
+        if self.probe(name):
+            self.sleep_one(name, reason="unregistered")
+        try:
+            os.remove(path)
+        except OSError as e:
+            return False, f"drop-in removal failed: {e}"
+        with self.lock:
+            self.residents.pop(name, None)
+            self.state.pop(name, None)
+        self._event(f"{name} unregistered")
+        return True, "unregistered"
+
     # -- master switch --
 
     def master(self, off, force=False):
@@ -362,6 +421,7 @@ class Maid:
                 "alive": st["alive"],
                 "suspended": st["suspend_req"],
                 "wanted": st["wanted"],
+                "fails": st["fails"],
                 "protocol": self.residents[name].get("protocol", "process"),
                 "vram_gb": self.residents[name].get("vram_gb", 0),
                 "icon": self.residents[name].get("icon", ""),

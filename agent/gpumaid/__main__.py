@@ -37,7 +37,10 @@ def main():
     cfg = load_config(args.config)
     state_path = args.state or os.path.join(
         os.path.dirname(os.path.abspath(args.config)), "gpumaid_state.json")
-    maid = Maid(cfg, state_path)
+    maid = Maid(cfg, state_path,
+                dropin_dir=os.path.join(
+                    os.path.dirname(os.path.abspath(args.config)),
+                    "residents.d"))
     maid.load_state()
     # startup = everyone considered just-busy: let a full idle period pass
     # before any idle suspension (never kill a running job on a reboot).

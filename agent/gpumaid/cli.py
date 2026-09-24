@@ -138,6 +138,48 @@ def cmd_events(args):
         print(f"{e['ts']}  {e['msg']}")
 
 
+def cmd_register(args):
+    fields = {}
+    if args.protocol:
+        fields["protocol"] = args.protocol
+    if args.port is not None:
+        fields["port"] = args.port
+    if args.probe:
+        fields["probe"] = args.probe
+    if args.start:
+        fields["start"] = args.start
+    if args.stop:
+        fields["stop"] = args.stop
+    if args.kill_pat:
+        fields["kill_pat"] = args.kill_pat
+    if args.sleep_url:
+        fields["sleep_url"] = args.sleep_url
+    if args.sleep_body:
+        try:
+            fields["sleep_body"] = json.loads(args.sleep_body)
+        except ValueError:
+            sys.exit("--sleep-body must be valid JSON")
+    if args.icon:
+        fields["icon"] = args.icon
+    if args.desc:
+        fields["desc"] = args.desc
+    if args.vram_gb is not None:
+        fields["vram_gb"] = args.vram_gb
+    if args.idle_suspend is not None:
+        fields["idle_suspend"] = args.idle_suspend
+    fields["wanted_default"] = not args.never_wanted
+    body = {"name": args.name, **fields}
+    st, data = call("POST", base_url(args), "/residents", body=body)
+    print(("ok: " if data.get("ok") else "no: ") + data.get("msg", ""))
+    sys.exit(0 if data.get("ok") else 1)
+
+
+def cmd_unregister(args):
+    st, data = call("DELETE", base_url(args), f"/residents/{args.resident}")
+    print(("ok: " if data.get("ok") else "no: ") + data.get("msg", ""))
+    sys.exit(0 if data.get("ok") else 1)
+
+
 def cmd_master(args):
     st, data = call("POST", base_url(args), f"/master/{args.op}")
     print(("ok: " if data.get("ok") else "no: ") + data.get("msg", ""))
@@ -170,6 +212,33 @@ def main():
     p = sub.add_parser("events", help="recent agent events")
     p.add_argument("-n", type=int, default=30, help="how many to show")
     p.set_defaults(fn=cmd_events)
+
+    p = sub.add_parser("register", help="register a new resident on the agent")
+    p.add_argument("name", help="resident name ([a-z0-9_-])")
+    p.add_argument("--protocol", choices=["process", "cooperative", "always_on"])
+    p.add_argument("--port", type=int, help="TCP probe port")
+    p.add_argument("--probe", help="HTTP probe url (200 = alive)")
+    p.add_argument("--start", help="start command (process/cooperative)")
+    p.add_argument("--stop", help="dedicated stop command")
+    p.add_argument("--kill-pat", dest="kill_pat",
+                   help="regex matched against process command lines")
+    p.add_argument("--sleep-url", dest="sleep_url",
+                   help="cooperative unload endpoint (POST)")
+    p.add_argument("--sleep-body", dest="sleep_body",
+                   help="JSON body for --sleep-url")
+    p.add_argument("--icon", help="emoji shown in desktop panels")
+    p.add_argument("--desc", help="free-text description")
+    p.add_argument("--vram-gb", dest="vram_gb", type=float,
+                   help="claimed VRAM budget for make-room")
+    p.add_argument("--idle-suspend", dest="idle_suspend", type=int,
+                   help="auto-suspend after N idle seconds")
+    p.add_argument("--never-wanted", action="store_true",
+                   help="exclude from the watchdog keepalive roster")
+    p.set_defaults(fn=cmd_register)
+
+    p = sub.add_parser("unregister", help="remove a registered resident")
+    p.add_argument("resident")
+    p.set_defaults(fn=cmd_unregister)
 
     p = sub.add_parser("master", help="whole-household switch")
     p.add_argument("op", choices=["on", "off"])

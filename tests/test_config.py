@@ -62,6 +62,27 @@ class TestConfigValidation(unittest.TestCase):
         with self.assertRaises(ValueError):
             load_config(self._write({"residents": {}}))
 
+    def test_residents_d_dropins_merge(self):
+        base = {"residents": {"llm": {"port": 1, "start": "x"}}}
+        p = self._write(base)
+        dd = os.path.join(self.tmp, "residents.d")
+        os.makedirs(dd)
+        with open(os.path.join(dd, "tts.json"), "w", encoding="utf-8") as f:
+            json.dump({"port": 8000, "start": "x", "icon": "🎤"}, f)
+        out = load_config(p)
+        self.assertIn("tts", out["residents"])
+        self.assertEqual(out["residents"]["tts"]["icon"], "🎤")
+        self.assertIn("llm", out["residents"])
+
+    def test_invalid_dropin_rejected(self):
+        p = self._write({"residents": {"llm": {"port": 1, "start": "x"}}})
+        dd = os.path.join(self.tmp, "residents.d")
+        os.makedirs(dd)
+        with open(os.path.join(dd, "bad.json"), "w", encoding="utf-8") as f:
+            json.dump({"bad": {"protocol": "process"}}, f)
+        with self.assertRaises(ValueError):
+            load_config(p)
+
 
 if __name__ == "__main__":
     unittest.main()

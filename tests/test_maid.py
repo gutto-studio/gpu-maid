@@ -28,7 +28,8 @@ def _make_maid(state_dir):
         "policies": dict(DEFAULT_POLICIES),
         "server": {},
     }
-    maid = Maid(cfg, os.path.join(state_dir, "state.json"))
+    maid = Maid(cfg, os.path.join(state_dir, "state.json"),
+                dropin_dir=os.path.join(state_dir, "residents.d"))
     maid._ps_kill = unittest.mock.Mock()  # noqa: SLF001 — stub, see docstring
     maid._stubbed_start = maid.start
     maid.start = unittest.mock.Mock()  # noqa: SLF001
@@ -115,6 +116,52 @@ class TestMaid(unittest.TestCase):
         maid.mark_busy("demo")
         self.assertGreater(maid.state["demo"]["last_busy"], before)
         maid.mark_busy("nobody")  # unknown: silently ignored
+
+
+class TestRegistration(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+
+    def _fields(self, name="extra"):
+        return {"protocol": "process", "port": 9771, "start": "echo hi",
+                "kill_pat": "hi_pat", "vram_gb": 2}
+
+    def test_register_persists_dropin_and_serves(self):
+        maid = _make_maid(self.tmp)
+        ok, msg = maid.register_resident("extra", self._fields())
+        self.assertTrue(ok, msg)
+        self.assertIn("extra", maid.residents)
+        self.assertIn("extra", maid.snapshot()["residents"])
+        dropin = os.path.join(self.tmp, "residents.d", "extra.json")
+        self.assertTrue(os.path.exists(dropin))
+        ok, msg = maid.register_resident("extra", self._fields())
+        self.assertFalse(ok)  # duplicate refused
+        self.assertIn("already registered", msg)
+
+    def test_register_rejects_invalid_fields(self):
+        maid = _make_maid(self.tmp)
+        ok, msg = maid.register_resident("bad", {"protocol": "process"})
+        self.assertFalse(ok)
+        self.assertIn("start command", msg)
+
+    def test_unregister_removes_dropin_only(self):
+        maid = _make_maid(self.tmp)
+        maid.register_resident("extra", self._fields())
+        ok, _ = maid.unregister_resident("extra")
+        self.assertTrue(ok)
+        self.assertNotIn("extra", maid.residents)
+        self.assertFalse(os.path.exists(
+            os.path.join(self.tmp, "residents.d", "extra.json")))
+
+    def test_unregister_refuses_static_residents(self):
+        ok, msg = _make_maid(self.tmp).unregister_resident("demo")
+        self.assertFalse(ok)
+        self.assertIn("static", msg)
+
+    def test_unregister_unknown(self):
+        ok, msg = _make_maid(self.tmp).unregister_resident("ghost")
+        self.assertFalse(ok)
+        self.assertIn("unknown", msg)
 
 
 class TestEvents(unittest.TestCase):

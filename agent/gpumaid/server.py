@@ -54,6 +54,14 @@ def build_server(maid, port, token):
                 elif path == "/master/off":
                     ok, msg = maid.master(off=True, force="force=1" in self.path)
                     self._send(200, {"ok": ok, "msg": msg})
+                elif path == "/residents":
+                    length = int(self.headers.get("Content-Length") or 0)
+                    payload = (json.loads(self.rfile.read(length) or b"{}")
+                               if length else {})
+                    name = str(payload.get("name", "")).strip()
+                    fields = {k: v for k, v in payload.items() if k != "name"}
+                    ok, msg = maid.register_resident(name, fields)
+                    self._send(200 if ok else 409, {"ok": ok, "msg": msg})
                 elif len(parts) == 3 and parts[1] in ("wake", "sleep", "ensure", "touch"):
                     name = parts[2].strip()
                     if parts[1] == "wake":
@@ -72,6 +80,17 @@ def build_server(maid, port, token):
                     self._send(404, {"error": "unknown route"})
             except Exception as e:  # noqa: BLE001 — report, never crash the maid
                 self._send(500, {"error": str(e)})
+
+        def do_DELETE(self):
+            if not self._authed():
+                self._send(401, {"error": "bad or missing token"})
+                return
+            parts = self.path.split("?")[0].rstrip("/").split("/", 2)
+            if len(parts) == 3 and parts[1] == "residents":
+                ok, msg = maid.unregister_resident(parts[2].strip())
+                self._send(200 if ok else 409, {"ok": ok, "msg": msg})
+            else:
+                self._send(404, {"error": "unknown route"})
 
     class ExclusiveServer(ThreadingHTTPServer):
         # Windows: exclusive bind makes an accidentally duplicated agent die

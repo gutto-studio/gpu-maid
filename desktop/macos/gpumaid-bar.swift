@@ -240,13 +240,17 @@ final class PanelVC: NSViewController {
         line.translatesAutoresizingMaskIntoConstraints = false
         line.widthAnchor.constraint(equalToConstant: 236).isActive = true
 
+        // ● up · ○ not running (by choice) · ✕ crashed (wanted but dead)
         let alive = (r["alive"] as? Bool) ?? false
         let suspended = (r["suspended"] as? Bool) ?? false
+        let wanted = (r["wanted"] as? Bool) ?? true
+        let fails = (r["fails"] as? Int) ?? 0
+        let crashed = !alive && !suspended && wanted && fails > 0
         let protocolName = r["protocol"] as? String ?? "process"
         let isAlways = protocolName == "always_on"
 
-        let dot = NSTextField(labelWithString: alive ? "●" : (suspended ? "○" : "✕"))
-        dot.textColor = alive ? .systemGreen : (suspended ? .systemGray : .systemRed)
+        let dot = NSTextField(labelWithString: alive ? "●" : (crashed ? "✕" : "○"))
+        dot.textColor = alive ? .systemGreen : (crashed ? .systemRed : .systemGray)
         line.addView(dot, in: .top)
 
         let name_ = NSTextField(labelWithString: name)

@@ -79,6 +79,21 @@ is no way to sleep it (or unknown resident).
 Renew a resident's idle timer — call it after a successful interaction with
 a resident whose traffic bypasses the agent. `200` always (if resident exists).
 
+## POST /residents · DELETE /residents/{name}
+
+Registration. `POST` adds a resident at runtime (validated like the config,
+persisted as a `residents.d/<name>.json` drop-in so it survives restarts):
+
+```json
+{ "name": "tts", "protocol": "process", "port": 8000,
+  "start": "python serve_tts.py", "kill_pat": "serve_tts.py",
+  "vram_gb": 4, "icon": "🎤" }
+```
+
+`DELETE /residents/{name}` removes it again (only drop-in registrations;
+static `residents.json` residents are edited by hand). `200` on success,
+`409` refused (duplicate, unknown, or static resident).
+
 ## POST /master/on · /master/off
 
 Whole-household switch, persisted across reboots.

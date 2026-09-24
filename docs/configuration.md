@@ -13,6 +13,13 @@
 Resident names: `[a-z0-9_-]` — they become the verbs
 (`gpumaid wake llm`).
 
+**Registration without hand-editing:** `gpumaid register <name> --port …
+--start … [--icon 🎤] [--vram-gb 4]` adds a resident over HTTP; it lands as
+a `residents.d/<name>.json` drop-in next to the config (merged on top of
+`residents.json`, later files win) and survives restarts. Remove with
+`gpumaid unregister <name>` — static residents.json entries are never
+deleted by the maid.
+
 ## `server`
 
 | field  | default | meaning                                             |

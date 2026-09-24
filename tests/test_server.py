@@ -56,6 +56,14 @@ class FakeMaid:
         self.calls.append(("master", off))
         return True, "ok"
 
+    def register_resident(self, name, fields):
+        self.calls.append(("register", name))
+        return name in ("demo", "ok-name"), "registered"
+
+    def unregister_resident(self, name):
+        self.calls.append(("unregister", name))
+        return True, "unregistered"
+
     def recent_events(self, n=None):
         return [{"ts": "09-24 11:00:00", "msg": "demo woken"}]
 
@@ -77,9 +85,11 @@ class ServerTestBase(unittest.TestCase):
         cls.srv.shutdown()
         cls.srv.server_close()
 
-    def _req(self, path, method="GET", headers=None):
-        req = urllib.request.Request(self.base + path, method=method,
-                                     headers=headers or {})
+    def _req(self, path, method="GET", headers=None, body=None):
+        req = urllib.request.Request(
+            self.base + path, method=method,
+            data=json.dumps(body).encode() if body is not None else None,
+            headers=headers or {})
         try:
             with urllib.request.urlopen(req, timeout=5) as resp:
                 return resp.status, json.loads(resp.read().decode())
@@ -135,6 +145,24 @@ class TestRoutes(ServerTestBase):
         self.assertEqual(st, 200)
         self.assertTrue(data["ok"])
         self.assertIn(("master", True), self.maid.calls)
+
+    def test_register_dispatches(self):
+        st, data = self._req("/residents", method="POST",
+                             body={"name": "ok-name", "port": 1})
+        self.assertEqual(st, 200)
+        self.assertTrue(data["ok"])
+        self.assertIn(("register", "ok-name"), self.maid.calls)
+
+    def test_register_refused_is_409(self):
+        st, data = self._req("/residents", method="POST",
+                             body={"name": "nobody"})
+        self.assertEqual(st, 409)
+
+    def test_unregister_dispatches(self):
+        st, data = self._req("/residents/demo", method="DELETE")
+        self.assertEqual(st, 200)
+        self.assertTrue(data["ok"])
+        self.assertIn(("unregister", "demo"), self.maid.calls)
 
     def test_unknown_route_is_404(self):
         st, _ = self._req("/nope")

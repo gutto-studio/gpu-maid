@@ -126,7 +126,7 @@ policies:
 
 | Piece     | Runs on                          | Does                                                                          |
 | --------- | -------------------------------- | ----------------------------------------------------------------------------- |
-| `agent/`  | Windows (native, no WSL2/Docker) | HTTP API · resident registry · VRAM gate + queue · wake/cooldown · watchdog · master switch · GPU util/temp telemetry |
+| `agent/`  | Windows (native, no WSL2/Docker) | HTTP API · resident registry + drop-in registration · VRAM gate + queue · wake/cooldown · watchdog · master switch · GPU util/temp telemetry |
 | `cli/`    | macOS or any box                 | thin client: `connect / list / wake / ensure / sleep / touch / events / master` |
 | desktop   | macOS menu bar · Windows tray    | first-party Swift app + SwiftBar plugin + PowerShell tray dot ([below](#menu-bar--system-tray)) |
 | transport | LAN / Tailscale                  | boring on purpose                                                              |
