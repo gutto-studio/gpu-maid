@@ -222,9 +222,12 @@ final class PanelVC: NSViewController {
             rows.addView(label("no residents configured", size: 12), in: .top)
         }
 
-        // processes holding VRAM right now — registered or not, honest list
+        // processes holding VRAM right now — real holders only (mb > 0),
+        // shortest name, biggest first
         clear(appsStack)
-        let apps = (d["compute_apps"] as? [[String: Any]]) ?? []
+        let apps = ((d["compute_apps"] as? [[String: Any]]) ?? [])
+            .filter { ($0["mb"] as? Int ?? 0) > 0 }
+            .sorted { ($0["mb"] as? Int ?? 0) > ($1["mb"] as? Int ?? 0) }
         if apps.isEmpty {
             appsStack.isHidden = true
         } else {
@@ -232,12 +235,14 @@ final class PanelVC: NSViewController {
             appsStack.addView(
                 label("holding VRAM (\(apps.count))", size: 12,
                       color: .secondaryLabelColor), in: .top)
-            for a in apps.prefix(8) {
-                let name = a["name"] as? String ?? "?"
+            for a in apps.prefix(6) {
+                let raw = a["name"] as? String ?? "?"
+                let short = raw.split(whereSeparator: { $0 == "/" || $0 == "\\" })
+                    .last.map(String.init) ?? raw
                 let mb = a["mb"] as? Int ?? 0
                 let pid = a["pid"] as? String ?? "?"
                 let l = NSTextField(labelWithString:
-                    "   \(name) · \(mb) MB · pid \(pid)")
+                    "   \(short) · \(mb) MB · pid \(pid)")
                 l.font = .systemFont(ofSize: 11)
                 l.textColor = .secondaryLabelColor
                 l.lineBreakMode = .byTruncatingTail

@@ -94,11 +94,14 @@ def cmd_list(args):
         flag = "up" if st["alive"] else ("suspended" if st["suspended"] else "down")
         print(f"  {name:<14} {flag:<10} {st['protocol']:<12}"
               f"{st['vram_gb']:>5} GB   {st['desc']}")
-    apps = data.get("compute_apps") or []
+    apps = [a for a in (data.get("compute_apps") or [])
+            if (a.get("mb") or 0) > 0]
+    apps.sort(key=lambda a: a.get("mb") or 0, reverse=True)
     if apps:
-        print(f"  holding VRAM now ({len(apps)}):")
-        for app in apps:
-            print(f"    pid {app['pid']:<7} {app['name'][:28]:<28} {app['mb']} MB")
+        print(f"  holding VRAM ({len(apps)}):")
+        for a in apps[:6]:
+            name = (a.get("name") or "?").split("\\")[-1].split("/")[-1]
+            print(f"    {name:<28} {a['mb']:>6} MB   pid {a['pid']}")
 
 
 def cmd_wake(args):
