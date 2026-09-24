@@ -115,7 +115,8 @@ policies:
 | 部件      | 跑在哪                       | 干什么                                                                 |
 | --------- | ---------------------------- | ---------------------------------------------------------------------- |
 | `agent/`  | Windows（原生，免 WSL2/Docker） | HTTP API · 住户名册 · 显存门禁 · 唤醒/冷却 · 看门狗 · 总闸                |
-| `cli/`    | macOS 或任意机器              | 薄客户端：`list / wake / run / sleep / master on/off`                    |
+| `cli/`    | macOS 或任意机器              | 薄客户端：`connect / list / wake / ensure / sleep / touch / events / master` |
+| 桌面组件  | macOS 菜单栏 · Windows 托盘   | SwiftBar 插件 + PowerShell 托盘点（零依赖脚本）                             |
 | 传输      | 局域网 / Tailscale            | 故意做得无聊                                                             |
 
 文档（英文）：[安装运行](docs/install.md) · [配置参考](docs/configuration.md) · [HTTP API](docs/api.md)

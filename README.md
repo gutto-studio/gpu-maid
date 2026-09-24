@@ -128,6 +128,7 @@ policies:
 | --------- | -------------------------------- | ----------------------------------------------------------------------------- |
 | `agent/`  | Windows (native, no WSL2/Docker) | HTTP API · resident registry · VRAM gate + queue · wake/cooldown · watchdog · master switch · GPU util/temp telemetry |
 | `cli/`    | macOS or any box                 | thin client: `connect / list / wake / ensure / sleep / touch / events / master` |
+| desktop   | macOS menu bar · Windows tray    | SwiftBar plugin + PowerShell tray dot ([below](#menu-bar--system-tray))          |
 | transport | LAN / Tailscale                  | boring on purpose                                                              |
 
 ## Docs
@@ -149,12 +150,18 @@ The skill teaches the loop (`list → wake → native API → sleep`) and, more
 importantly, the house rules: an agent must never kill resident processes behind
 the maid's back, and must not flip the master switch unless the human asked.
 
-## macOS menu bar
+## Menu bar & system tray
 
-A [SwiftBar](https://swiftbar.app) plugin ships in [`menubar/`](menubar/README.md):
-live GPU memory/util/temperature in the bar, resident roster with one-click
-wake & sleep, the make-room queue and recent events in the dropdown. One
-stdlib script, no Xcode, no web UI.
+Two desktop companions ship in the repo, both zero-dependency scripts:
+
+- **macOS**: a [SwiftBar](https://swiftbar.app) plugin in [`menubar/`](menubar/README.md) —
+  live GPU memory/util/temperature in the bar, resident roster with one-click
+  wake & sleep, the make-room queue and recent events in the dropdown.
+- **Windows**: a PowerShell + WinForms tray dot in [`tray/`](tray/README.md) —
+  color-coded free VRAM (green/orange/red, purple when the master switch is
+  off), right-click to wake/sleep residents or flip the master switch.
+
+No Xcode, no Electron, no web UI — script-driven, like the rest of the house.
 
 ## When you don't need it
 
@@ -180,6 +187,7 @@ patterns in daily production (TTS + image + video + LLM sharing one consumer GPU
 - [x] pip packaging (pyproject: `gpumaid` + `gpumaid-agent` entry points) ·
       CI (unittest + markdownlint on Linux/Windows)
 - [x] macOS menu-bar plugin (SwiftBar): [menubar/](menubar/README.md)
+- [x] Windows system-tray companion (PowerShell, zero-dep): [tray/](tray/README.md)
 - [x] Real-GPU validation on a live Windows box (RTX 4070S, 15/15 checks —
       rerun anytime with `python scripts/validate_on_pc.py` on the GPU box)
 - [ ] Demo GIF · PyPI publish · v0.1 launch

@@ -19,6 +19,14 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: agent imports cleanly
         run: python -c "import sys; sys.path.insert(0, 'agent'); import gpumaid, gpumaid.cli, gpumaid.server; print('ok')"
+      - name: tray script parses (windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $errs = $null
+          $null = [System.Management.Automation.Language.Parser]::ParseFile(
+            (Join-Path $PWD 'tray/gpu-maid-tray.ps1'), [ref]$null, [ref]$errs)
+          if ($errs.Count) { $errs | ForEach-Object { $_.Message }; exit 1 }
 
   lint:
     runs-on: ubuntu-latest
