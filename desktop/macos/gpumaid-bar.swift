@@ -85,6 +85,8 @@ final class PanelVC: NSViewController {
     private let rows = NSStackView()
     private let appsStack = NSStackView()
     private let eventsStack = NSStackView()
+    private let masterBtn = NSButton(title: "master off", target: nil,
+                                     action: nil)
     var onResize: ((NSSize) -> Void)?
 
     override func loadView() {
@@ -146,6 +148,31 @@ final class PanelVC: NSViewController {
         eventsStack.spacing = 2
         outer.addView(eventsStack, in: .top)
 
+        // footer: master switch + a way to actually leave (a maid that
+        // cannot be dismissed is a haunted one)
+        let footer = NSStackView()
+        footer.orientation = .horizontal
+        footer.alignment = .centerY
+        footer.spacing = 12
+        footer.translatesAutoresizingMaskIntoConstraints = false
+        footer.widthAnchor.constraint(equalToConstant: 252).isActive = true
+        let spacer = NSView()
+        spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        footer.addView(spacer)
+        masterBtn.bezelStyle = .borderless
+        masterBtn.controlSize = .small
+        masterBtn.contentTintColor = .controlAccentColor
+        masterBtn.target = self
+        masterBtn.action = #selector(onAction(_:))
+        footer.addView(masterBtn)
+        let quit = NSButton(title: "quit", target: self,
+                            action: #selector(doQuit(_:)))
+        quit.bezelStyle = .borderless
+        quit.controlSize = .small
+        quit.contentTintColor = .secondaryLabelColor
+        footer.addView(quit)
+        outer.addView(footer, in: .top)
+
         // machine room link (only when a dashboard is configured)
         if dashboardURL() != nil {
             let link = NSButton(title: "machine room →", target: self,
@@ -156,6 +183,10 @@ final class PanelVC: NSViewController {
         }
 
         view = v
+    }
+
+    @objc private func doQuit(_ sender: Any?) {
+        NSApp.terminate(nil)
     }
 
     @objc private func openDashboard(_ sender: Any?) {
@@ -190,6 +221,11 @@ final class PanelVC: NSViewController {
         } else {
             status.stringValue = "All quiet — the house is calm"
         }
+
+        let masterOff = (d["master_off"] as? Bool) ?? false
+        masterBtn.title = masterOff ? "master on" : "master off"
+        masterBtn.identifier = NSUserInterfaceItemIdentifier(
+            masterOff ? "/master/on" : "/master/off")
 
         // vram gauge: used / total, plus temperature & utilization
         let g = d["gpu"] as? [String: Any]
