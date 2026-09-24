@@ -158,19 +158,19 @@ final class PanelVC: NSViewController {
         footer.widthAnchor.constraint(equalToConstant: 252).isActive = true
         let spacer = NSView()
         spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        footer.addView(spacer)
-        masterBtn.bezelStyle = .borderless
+        footer.addView(spacer, in: .top)
+        masterBtn.isBordered = false
         masterBtn.controlSize = .small
         masterBtn.contentTintColor = .controlAccentColor
         masterBtn.target = self
         masterBtn.action = #selector(onAction(_:))
-        footer.addView(masterBtn)
+        footer.addView(masterBtn, in: .top)
         let quit = NSButton(title: "quit", target: self,
                             action: #selector(doQuit(_:)))
-        quit.bezelStyle = .borderless
+        quit.isBordered = false
         quit.controlSize = .small
         quit.contentTintColor = .secondaryLabelColor
-        footer.addView(quit)
+        footer.addView(quit, in: .top)
         outer.addView(footer, in: .top)
 
         // machine room link (only when a dashboard is configured)
