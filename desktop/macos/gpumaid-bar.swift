@@ -51,16 +51,6 @@ func dashboardURL() -> String? {
     return nil
 }
 
-func icon(for name: String, explicit: Any?) -> String {
-    if let e = explicit as? String, !e.isEmpty { return e }
-    let n = name.lowercased()
-    if n.contains("llm") || n.contains("ollama") { return "🧠" }
-    if n.contains("image") || n.contains("paint") { return "🎨" }
-    if n.contains("video") { return "🎬" }
-    if n.contains("voice") || n.contains("tts") { return "🎤" }
-    return "⚙️"
-}
-
 // MARK: - VRAM gauge (custom-drawn rounded bar)
 
 final class VRAMBarView: NSView {
@@ -91,9 +81,11 @@ final class PanelVC: NSViewController {
     private let status = NSTextField(labelWithString: "…")
     private let bar = VRAMBarView()
     private let caption = NSTextField(labelWithString: "")
+    private let telemetry = NSTextField(labelWithString: "")
     private let rows = NSStackView()
     private let eventsStack = NSStackView()
     var onRefresh: (() -> Void)?
+    var onResize: ((NSSize) -> Void)?
 
     override func loadView() {
         let v = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 360))
@@ -102,8 +94,8 @@ final class PanelVC: NSViewController {
         let outer = NSStackView()
         outer.orientation = .vertical
         outer.alignment = .leading
-        outer.spacing = 6
-        outer.edgeInsets = NSEdgeInsets(top: 14, left: 16, bottom: 12, right: 16)
+        outer.spacing = 4
+        outer.edgeInsets = NSEdgeInsets(top: 12, left: 14, bottom: 10, right: 14)
         outer.translatesAutoresizingMaskIntoConstraints = false
         v.addSubview(outer)
         NSLayoutConstraint.activate([
@@ -111,7 +103,7 @@ final class PanelVC: NSViewController {
             outer.trailingAnchor.constraint(equalTo: v.trailingAnchor),
             outer.topAnchor.constraint(equalTo: v.topAnchor),
             outer.bottomAnchor.constraint(lessThanOrEqualTo: v.bottomAnchor, constant: -4),
-            v.widthAnchor.constraint(equalToConstant: 300),
+            v.widthAnchor.constraint(equalToConstant: 280),
         ])
 
         func label(_ text: String, size: CGFloat = 13,
@@ -132,12 +124,13 @@ final class PanelVC: NSViewController {
         // residents section
         outer.addView(label("Residents", size: 13, bold: true), in: .top)
         bar.translatesAutoresizingMaskIntoConstraints = false
-        bar.widthAnchor.constraint(equalToConstant: 268).isActive = true
+        bar.widthAnchor.constraint(equalToConstant: 252).isActive = true
         outer.addView(bar, in: .top)
         outer.addView(caption, in: .top)
+        outer.addView(telemetry, in: .top)
         rows.orientation = .vertical
         rows.alignment = .leading
-        rows.spacing = 4
+        rows.spacing = 2
         outer.addView(rows, in: .top)
 
         // events section
@@ -171,17 +164,24 @@ final class PanelVC: NSViewController {
             status.stringValue = "All quiet — the house is calm"
         }
 
-        // vram gauge: used / total
+        // vram gauge: used / total, plus temperature & utilization
         let g = d["gpu"] as? [String: Any]
         let free = g?["free_gb"] as? Double
         let total = g?["total_gb"] as? Double
         if let f = free, let t = total, t > 0 {
             bar.fraction = CGFloat((t - f) / t)
-            caption.stringValue = String(format: "%.2fG / %.2fG used", t - f, t)
+            caption.stringValue = String(format: "used %.2fG · free %.2fG", t - f, f)
         } else {
             bar.fraction = 0
             caption.stringValue = "GPU telemetry unavailable"
         }
+        var tele: [String] = []
+        if let temp = g?["temp_c"] as? Int { tele.append("\(temp)°C") }
+        if let util = g?["util_pct"] as? Int { tele.append("util \(util)%") }
+        telemetry.stringValue = tele.joined(separator: " · ")
+        telemetry.textColor = .secondaryLabelColor
+        telemetry.font = .systemFont(ofSize: 11)
+        telemetry.isHidden = tele.isEmpty
 
         // resident rows
         clear(rows)
@@ -198,7 +198,7 @@ final class PanelVC: NSViewController {
 
         // events
         clear(eventsStack)
-        for e in events.suffix(5) {
+        for e in events.suffix(3) {
             let ts = e["ts"] as? String ?? ""
             let msg = e["msg"] as? String ?? ""
             let t = NSTextField(labelWithString: "\(ts)  \(msg)")
@@ -207,9 +207,11 @@ final class PanelVC: NSViewController {
             t.lineBreakMode = .byTruncatingTail
             t.maximumNumberOfLines = 1
             t.translatesAutoresizingMaskIntoConstraints = false
-            t.widthAnchor.constraint(equalToConstant: 268).isActive = true
+            t.widthAnchor.constraint(equalToConstant: 252).isActive = true
             eventsStack.addView(t, in: .top)
         }
+        view.layoutSubtreeIfNeeded()
+        onResize?(NSSize(width: 280, height: max(160, view.fittingSize.height)))
     }
 
     private func clear(_ s: NSStackView) {
@@ -241,9 +243,6 @@ final class PanelVC: NSViewController {
         let dot = NSTextField(labelWithString: alive ? "●" : (suspended ? "○" : "✕"))
         dot.textColor = alive ? .systemGreen : (suspended ? .systemGray : .systemRed)
         line.addView(dot, in: .top)
-
-        let emoji = NSTextField(labelWithString: icon(for: name, explicit: r["icon"]))
-        line.addView(emoji, in: .top)
 
         let name_ = NSTextField(labelWithString: name)
         name_.font = .systemFont(ofSize: 13)
@@ -293,8 +292,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ note: Notification) {
         popover.behavior = .transient
-        popover.contentSize = NSSize(width: 300, height: 360)
+        popover.contentSize = NSSize(width: 280, height: 220)
         popover.contentViewController = panel
+        panel.onResize = { [weak self] size in
+            self?.popover.contentSize = size
+        }
 
         let b = statusItem.button
         b?.title = "maid …"
