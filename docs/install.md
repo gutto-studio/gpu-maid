@@ -8,12 +8,13 @@
 
 ## 1. Get the code (both machines)
 
-```bash
-git clone https://github.com/jincheng211/gpu-maid
-```
+Two install paths:
 
-> Packaging (`pip install gpu-maid`) is planned for the v0.1 release; until
-> then, run from source.
+- **From PyPI** (at the v0.1 release): `pip install gpu-maid` — gives you the
+  `gpumaid` (CLI) and `gpumaid-agent` (daemon) commands.
+- **From source**: `git clone https://github.com/jincheng211/gpu-maid` — run
+  the agent as `python -m gpumaid` from `agent/`, and the CLI as
+  `python3 cli/gpumaid.py`. Both are stdlib-only.
 
 ## 2. GPU box: describe your household
 
@@ -41,6 +42,14 @@ curl http://127.0.0.1:9700/health
 
 ### Autostart at login (optional)
 
+Either run the bundled helper from the repo:
+
+```bat
+scripts\install_windows_task.bat C:\path\to\residents.json
+```
+
+or create the task by hand:
+
 ```bat
 schtasks /Create /TN gpumaid /SC ONLOGON ^
   /TR "cmd /c cd /d C:\path\to\gpu-maid\agent && python -m gpumaid --config C:\path\to\residents.json"
@@ -60,7 +69,7 @@ box's tailnet address. If you expose the agent beyond localhost/LAN, set
 ## 4. Daily machine: the CLI
 
 ```bash
-alias gpumaid="python3 /path/to/gpu-maid/cli/gpumaid.py"
+alias gpumaid="python3 /path/to/gpu-maid/cli/gpumaid.py"   # or `gpumaid` if pip-installed
 gpumaid connect 192.168.1.20:9700     # saved to ~/.gpumaid/config.json
 gpumaid list
 ```

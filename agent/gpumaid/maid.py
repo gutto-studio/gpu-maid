@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import collections
 import json
 import logging
 import subprocess
@@ -29,6 +30,7 @@ class Maid:
         self.gate = threading.Lock()
         self._gate_holder = None
         self._gate_waiting = []
+        self.events = collections.deque(maxlen=200)  # state-transition log
         self.master_off = False
         self.state = {
             name: {"alive": False, "fails": 0, "last_revive": 0.0,
@@ -88,7 +90,7 @@ class Maid:
         cmd = self.residents[name].get("start")
         if not cmd:
             return
-        LOG.info("starting %s: %s", name, cmd)
+        self._event(f"starting {name}: {cmd}")
         subprocess.Popen(cmd, shell=True,
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                          stdin=subprocess.DEVNULL,
@@ -128,7 +130,7 @@ class Maid:
                 with self.lock:
                     self.state[name]["suspend_req"] = True
                 self.save_state()
-                LOG.info("%s asleep via unload endpoint (%s)", name, reason)
+                self._event(f"{name} asleep via unload endpoint ({reason})")
                 return True, "asleep (unloaded)"
             # unload failed but a kill pattern exists: fall through to kill
         if r.get("stop"):
@@ -145,7 +147,7 @@ class Maid:
             self.state[name]["suspend_req"] = True
             self.state[name]["alive"] = False  # stamped now; watchdog verifies
         self.save_state()
-        LOG.info("%s asleep (%s)", name, reason)
+        self._event(f"{name} asleep ({reason})")
         return True, "asleep"
 
     # -- the make-room ritual --
@@ -161,7 +163,7 @@ class Maid:
             self.residents, self.state, free, needed_gb, target,
             self.policies["baseline_gb"])
         for n in evict:
-            LOG.info("asking %s to make room for %s", n, target)
+            self._event(f"asking {n} to make room for {target}")
             self.sleep_one(n, reason=f"making room for {target}")
         if free is None:
             return True, "vram unknown — gate skipped (no nvidia-smi)"
@@ -215,6 +217,7 @@ class Maid:
             return False, "resident is down and has no start command", {}
         ok, detail = self.make_room(name, r.get("vram_gb", 0))
         if not ok:
+            self._event(f"{name} wake refused: {detail}")
             return False, detail, {"vram": gpu_status().get("free_gb")}
         self.start(name)
         # quick stamp: fast starters show up in /list immediately; slow cold
@@ -272,15 +275,15 @@ class Maid:
                 for name in self.state:
                     self.state[name]["wanted"] = False
             self.save_state()
-            LOG.info("MASTER OFF (owner mode)")
+            self._event("MASTER OFF (owner mode)")
             return True, "master off: VRAM returned to the owner"
         with self.lock:
             self.master_off = False
             for name in self.state:
                 self.state[name]["wanted"] = False  # on-demand roster: empty
-        self.save_state()
-        LOG.info("MASTER ON (on-demand mode)")
-        return True, "master on: residents load on demand"
+            self.save_state()
+            self._event("MASTER ON (on-demand mode)")
+            return True, "master on: residents load on demand"
 
     # -- watchdog --
 
@@ -303,7 +306,7 @@ class Maid:
                     with self.lock:
                         st["fails"] = 0
                         st["last_revive"] = time.time()
-                    LOG.info("%s dead, reviving (watchdog)", name)
+                    self._event(f"{name} dead, reviving (watchdog)")
                     self.start(name)
             self._idle_suspend_check()
             time.sleep(self.policies["check_interval_s"])
@@ -320,8 +323,21 @@ class Maid:
                     st["last_busy"] = time.time()  # claim the slot first
                     hits.append((name, ttl))
         for name, ttl in hits:
-            LOG.info("%s idle for %ss, suspending (VRAM back)", name, ttl)
+            self._event(f"{name} idle for {ttl}s, suspending (VRAM back)")
             self.sleep_one(name, reason="idle timeout")
+
+    # -- event log (what happened while you were away) --
+
+    def _event(self, msg):
+        with self.lock:
+            self.events.append({"ts": time.strftime("%m-%d %H:%M:%S"),
+                                "msg": msg})
+        LOG.info("%s", msg)
+
+    def recent_events(self, n=None):
+        with self.lock:
+            items = list(self.events)
+        return items[-n:] if n else items
 
     # -- snapshots for /list --
 

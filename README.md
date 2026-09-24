@@ -127,7 +127,7 @@ policies:
 | Piece     | Runs on                          | Does                                                                          |
 | --------- | -------------------------------- | ----------------------------------------------------------------------------- |
 | `agent/`  | Windows (native, no WSL2/Docker) | HTTP API · resident registry · VRAM gate + queue · wake/cooldown · watchdog · master switch · GPU util/temp telemetry |
-| `cli/`    | macOS or any box                 | thin client: `connect / list / wake / sleep / touch / master on/off`           |
+| `cli/`    | macOS or any box                 | thin client: `connect / list / wake / ensure / sleep / touch / events / master` |
 | transport | LAN / Tailscale                  | boring on purpose                                                              |
 
 ## Docs
@@ -170,8 +170,10 @@ patterns in daily production (TTS + image + video + LLM sharing one consumer GPU
 - [x] `skills/gpu-maid/SKILL.md` — teach agents the loop and the house rules
 - [x] `examples/` + docs: [install](docs/install.md) ·
       [configuration reference](docs/configuration.md) · [HTTP API](docs/api.md)
+- [x] pip packaging (pyproject: `gpumaid` + `gpumaid-agent` entry points) ·
+      CI (unittest + markdownlint on Linux/Windows)
 - [ ] Real-GPU validation pass on a live Windows box
-- [ ] Demo GIF · `pip install gpu-maid` packaging · v0.1 launch
+- [ ] Demo GIF · PyPI publish · v0.1 launch
 
 ## Scope & support
 

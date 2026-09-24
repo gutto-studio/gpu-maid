@@ -201,5 +201,25 @@ class TestMaid(unittest.TestCase):
         self.assertIsNone(snap["gpu"]["free_gb"])
 
 
+class TestEvents(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+
+    def test_transitions_are_recorded(self):
+        maid = _make_maid(self.tmp)
+        maid.master(off=True)
+        msgs = [e["msg"] for e in maid.events]
+        self.assertTrue(any("MASTER OFF" in m for m in msgs))
+        self.assertTrue(any("asleep" in m for m in msgs))
+        for e in maid.events:
+            self.assertIn("ts", e)
+
+    def test_recent_events_slice(self):
+        maid = _make_maid(self.tmp)
+        maid.master(off=True)
+        self.assertEqual(len(maid.recent_events(1)), 1)
+        self.assertGreaterEqual(len(maid.recent_events()), 2)
+
+
 if __name__ == "__main__":
     unittest.main()

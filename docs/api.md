@@ -38,6 +38,20 @@ utilization and temperature; `compute_apps` lists the processes currently
 holding VRAM. On boxes without `nvidia-smi` the telemetry fields degrade to
 `null` and the VRAM gate skips itself.
 
+## GET /events
+
+The agent's event log: state transitions (starts, sleeps, evictions, watchdog
+revives, master switch flips, refused wakes), newest last, ring buffer of 200.
+
+```json
+{ "events": [
+  { "ts": "09-24 11:40:37", "msg": "asking voice to make room for image" },
+  { "ts": "09-24 11:40:39", "msg": "image asleep (making room for video)" }
+]}
+```
+
+Optional `?n=50` returns only the last 50 entries. Read-only, no auth.
+
 ## POST /wake/{name}
 
 Ask for the room: evicts (per protocol) if VRAM is short, waits for measured

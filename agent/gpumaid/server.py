@@ -30,6 +30,14 @@ def build_server(maid, port, token):
                                  "master_off": maid.master_off})
             elif self.path == "/list":
                 self._send(200, maid.snapshot())
+            elif self.path.startswith("/events"):
+                n = None
+                if "n=" in self.path:
+                    try:
+                        n = max(1, min(1000, int(self.path.split("n=")[-1])))
+                    except ValueError:
+                        n = None
+                self._send(200, {"events": maid.recent_events(n)})
             else:
                 self._send(404, {"error": "unknown route"})
 

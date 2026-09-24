@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gpu-maid"
+dynamic = ["version"]
+description = "Your GPU's maid - VRAM arbitration butler for AI residents on one consumer GPU"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Apache-2.0" }
+authors = [{ name = "jincheng211" }]
+keywords = ["gpu", "vram", "ollama", "comfyui", "windows", "orchestration"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: No Input/Output (Daemon)",
+  "Intended Audience :: Developers",
+  "Operating System :: Microsoft :: Windows",
+  "Programming Language :: Python :: 3",
+  "Topic :: System :: Systems Administration",
+]
+
+[project.scripts]
+gpumaid = "gpumaid.cli:main"
+gpumaid-agent = "gpumaid.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["agent"]
+
+[tool.setuptools.dynamic]
+version = { attr = "gpumaid.__version__" }
