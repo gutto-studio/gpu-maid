@@ -3,7 +3,8 @@
 English · [简体中文](README.zh-CN.md)
 
 ![license](https://img.shields.io/badge/license-Apache--2.0-blue)
-![status](https://img.shields.io/badge/status-v0.1%20WIP-orange)
+![release](https://img.shields.io/badge/release-v0.1.0-blue)
+[![ci](https://github.com/gutto-studio/gpu-maid/actions/workflows/ci.yml/badge.svg)](https://github.com/gutto-studio/gpu-maid/actions/workflows/ci.yml)
 ![agent](https://img.shields.io/badge/agent-Windows--native-informational)
 ![client](https://img.shields.io/badge/client-macOS%20%2F%20any%20HTTP-informational)
 
@@ -54,14 +55,21 @@ gpu-maid is the butler that takes that job from you.
 6. Done? The house returns to its resting posture — or you flip the master switch and
    the whole household rests.
 
-## The daily loop (target UX)
+## The daily loop
 
-Install once — the agent on the Windows box with a residents file, the CLI on your
-Mac pointed at it:
+Install once — the agent on the Windows box with a residents file, the CLI on
+your Mac pointed at it:
 
 ```bash
-$ pip install gpu-maid            # both sides (v0.1)
-$ gpu-maid connect 192.168.1.20   # point the CLI at the maid — one time
+$ git clone https://github.com/gutto-studio/gpu-maid
+$ python3 cli/gpumaid.py connect 192.168.1.20:9700   # point the CLI at the maid — saved once
+```
+
+New service on the card? Introduce it to the maid — no hand-editing:
+
+```bash
+$ gpumaid register tts --port 8000 --start "python serve_tts.py" \
+    --kill-pat serve_tts.py --icon 🎤 --vram-gb 4
 ```
 
 After that the whole day is three sentences:
@@ -101,7 +109,7 @@ own UI is ComfyUI's business. The maid only steps in when someone asks her for V
 
 ## A taste of the config
 
-> Shape preview — the v0.1 schema is still settling.
+> Full field reference: [configuration.md](docs/configuration.md).
 
 ```yaml
 residents:

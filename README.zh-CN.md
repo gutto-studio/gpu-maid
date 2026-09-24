@@ -45,13 +45,20 @@ gpu-maid 就是把这份工作从你手里接走的女仆。
 5. 看门狗全程值守，谁静默暴毙就扶谁起来。
 6. 干完了？全家回到休息姿势——或者你拉一下总闸，整个 household 集体歇业。
 
-## 日常循环（目标交互）
+## 日常循环
 
 装一次就完事：Windows 侧 agent + 住户名册，Mac 侧 CLI 指个地址：
 
 ```bash
-$ pip install gpu-maid            # 两边都要（v0.1）
-$ gpu-maid connect 192.168.1.20   # 把 CLI 指向女仆——一次即可
+$ git clone https://github.com/gutto-studio/gpu-maid
+$ python3 cli/gpumaid.py connect 192.168.1.20:9700   # 把 CLI 指向女仆——一次即可
+```
+
+卡上来了新服务？向女仆引荐一下，不用手改配置：
+
+```bash
+$ gpumaid register tts --port 8000 --start "python serve_tts.py" \
+    --kill-pat serve_tts.py --icon 🎤 --vram-gb 4
 ```
 
 之后一整天就三句话：
@@ -89,7 +96,7 @@ ComfyUI 会在步骤之间自己倒腾模型，Ollama 有 `keep_alive`，现代�
 
 ## 配置长什么样
 
-> 形状预览——v0.1 的 schema 还在收敛。
+> 全字段参考：[configuration.md](docs/configuration.md)。
 
 ```yaml
 residents:
