@@ -1,36 +1,93 @@
 # gpu-maid
 
+![license](https://img.shields.io/badge/license-Apache--2.0-blue)
+![status](https://img.shields.io/badge/status-v0.1%20WIP-orange)
+
 **你家显卡的女仆——别的产线要上工了，她就哄住户们去睡觉。**
 
 （英文主文档见 [README.md](README.md)，本页为中文速览。）
+
+<p align="center">
+  <img src="docs/architecture.svg" alt="gpu-maid 架构：Mac 客户端 → Windows 显卡机上的 gpu-maid agent → 同一块显卡上的多住户（LLM / TTS / 画图 / 视频）显存仲裁" width="820">
+</p>
 
 `gpu-maid` 解决一个常见家庭的烦恼：**一块消费级显卡**（比如 Windows 游戏PC）同时住着
 好几个 AI 住户——LLM、TTS 嗓子、画图、视频——而主人想从 Mac 上远程使唤它们。
 
 远程调用本身是大路货：Ollama 有远程端点，ComfyUI 有 API，Tailscale 一拉就通。真正缺的
-是**决定谁上工、谁睡觉、谁该被叫醒**的那一层——也就是女仆的活儿：
+是**决定谁上工、谁睡觉、谁该被叫醒**的那一层——也就是女仆的活儿。
 
-- **住户名册**：模型服务一次性登记进一份配置
-- **显存门禁**：一个要 8 GB 显存的活儿先找女仆，她把当前住户礼貌劝睡，而不是让它们
-  抢到内存 swap 里慢慢爬
-- **唤醒与冷却**：按需唤醒 + 加载期冷却窗，模型还在加载时不会被看门狗二次拉起
-- **看门狗**：静默暴毙的住户会被发现并自动扶起
-- **总闸**：一句话让全家歇业，显卡还给主人打游戏
+## 一单活儿的流程
 
-## 结构
+1. 你向 agent 要一个**需要 8 GB 空闲显存**的活儿。
+2. 女仆翻住户名册：画图线正在上工，其余住户都睡着。
+3. 她把画图线礼貌劝睡，等显存安顿下来。
+4. 唤醒目标住户——带冷却窗，模型还在加载时绝不会被二次戳醒。
+5. 看门狗全程值守，谁静默暴毙就扶谁起来。
+6. 干完了？全家回到休息姿势——或者你拉一下总闸，整个 household 集体歇业。
 
-```text
-Mac / 任意客户端 ──局域网或 Tailscale──► gpu-maid agent（Windows）──► 住户们
-   薄 CLI                                HTTP API · 名册 ·            (Ollama、TTS、
-                                         显存门禁 · 看门狗             ComfyUI…)
+## 跟自带编排的住户怎么相处
+
+ComfyUI 会在步骤之间自己倒腾模型，Ollama 有 `keep_alive`，现代运行时都在自己墙内
+管理显存——那是**它们的**本职，gpu-maid 刻意不跟它们抢活。界线这样划：
+
+- **住户体内**（加载哪个模型、何时卸载）——住户自己说了算；
+- **住户之间**（别人要显存时，谁还有资格占着卡）——女仆说了算。
+
+注册表里的三档「听话等级」把共存写成明文：
+
+| protocol      | 「睡」的动作                     | 例子                                            |
+| ------------- | -------------------------------- | ----------------------------------------------- |
+| `cooperative` | 调它的卸载 API，进程留驻          | ComfyUI（`POST /free`）、Ollama（`keep_alive: 0`） |
+| `process`     | 停进程；唤醒 = 启动命令           | 裸模型服务                                       |
+| `always_on`   | 永不驱逐——计入基线               | 桌面挂件、驱动                                    |
+
+门禁是闭环的：只信 **nvidia-smi 实测**的空闲显存，不信任何人的口头承诺——礼貌驱逐
+之后显存还没安顿下来？按住户允许的阶梯升级（卸载 API → 停进程）。
+
+住户自己的队列自己排：你直接往 ComfyUI 界面里塞的活儿是它自己的事。只有当有人向
+女仆要显存时，她才出手。
+
+## 配置长什么样
+
+> 形状预览——v0.1 的 schema 还在收敛。
+
+```yaml
+residents:
+  llm:
+    protocol: cooperative            # 睡 = 卸载 API（keep_alive: 0），进程留驻
+    vram_gb: 5
+  image:
+    protocol: cooperative            # 睡 = POST /free —— ComfyUI 保留队列和界面
+    endpoint: http://127.0.0.1:8188
+    vram_gb: 8
+  voice:
+    protocol: process                # 睡 = 停进程；醒 = 启动命令
+    vram_gb: 4
+policies:
+  baseline_gb: 1                     # CUDA 上下文与 always_on 住户
+  vram_free_need_gb: 8               # 每单活儿先过这道门禁
+  load_cooldown_s: 90                # 加载中的模型不被反复戳
+  settle_timeout_s: 120              # 没安顿好？按协议阶梯升级
 ```
 
-agent 原生跑在 Windows 上——**不要 WSL2、不要 Docker Desktop、不需要 Linux 服务器**。
+## 组件
+
+| 部件      | 跑在哪                       | 干什么                                                                 |
+| --------- | ---------------------------- | ---------------------------------------------------------------------- |
+| `agent/`  | Windows（原生，免 WSL2/Docker） | HTTP API · 住户名册 · 显存门禁 · 唤醒/冷却 · 看门狗 · 总闸                |
+| `cli/`    | macOS 或任意机器              | 薄客户端：`list / wake / run / sleep / master on/off`                    |
+| 传输      | 局域网 / Tailscale            | 故意做得无聊                                                             |
 
 ## 状态
 
 🚧 v0.1 开发中。范围与架构已定盘，正在从作者的生产环境里抽取泛化（单张消费级显卡
 同时养 TTS + 画图 + 视频 + LLM 的真实产线）。
+
+## 范围与支持
+
+作者环境（NVIDIA + Windows 游戏PC + 国产杀软在场）日产实测；其余显卡、驱动、环境
+均未测试——一切 **as-is**，欢迎提 issue，欢迎提 patch，patch 来得更快。
 
 ## License
 
