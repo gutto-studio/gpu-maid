@@ -86,3 +86,13 @@ gpumaid master on                       # back to on-demand mode
 State lives in `gpumaid_state.json` next to your config: the master switch,
 the keepalive roster and suspend marks all survive reboots. Nothing
 resurrects behind your back.
+
+## 6. Full validation harness (optional)
+
+On the GPU box itself you can run a self-contained 15-check validation —
+starts a throwaway resident, exercises every verb against the real card
+(telemetry, detached spawn, process kill, master roundtrip) and cleans up:
+
+```bat
+python scripts\validate_on_pc.py
+```

@@ -140,8 +140,10 @@ cp -r skills/gpu-maid ~/.claude/skills/    # Claude Code / ZCode 等认识 SKILL
 
 ## 状态
 
-🚧 v0.1 开发中。agent / CLI / 示例配置 / 文档（英文）已落地，正在做真显卡验证与
-打包（作者的生产线：单张消费级显卡同时养 TTS + 画图 + 视频 + LLM）。
+🚧 v0.1 开发中。agent / CLI / 示例配置 / 文档 / macOS 菜单栏插件已落地，
+**已在真实 Windows 显卡机（RTX 4070S）上通过 15/15 项真机验证**
+（GPU 上运行 `python scripts/validate_on_pc.py` 可随时回归）。剩余：Demo GIF、
+PyPI 发布。
 
 ## 范围与支持
 

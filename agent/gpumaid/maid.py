@@ -99,8 +99,10 @@ class Maid:
     def _ps_kill(self, pattern):
         """Kill processes whose command line matches pattern (cross-platform).
 
-        Never blocks the maid for long: a stuck kill (AV interference, zombie
-        scan) times out instead of wedging master-off.
+        The PowerShell helper is transient (we wait for it), so it gets
+        NO_WINDOW only — DETACHED|NEW_PROCESS_GROUP here makes it die
+        silently when the agent itself descends from an SSH chain
+        (battle-tested lesson; production butlers run NO_WINDOW).
         """
         if IS_WIN:
             subprocess.run(
@@ -108,7 +110,7 @@ class Maid:
                  "Get-CimInstance Win32_Process | Where-Object { "
                  "$_.CommandLine -match '" + pattern + "' } | "
                  "ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"],
-                capture_output=True, timeout=30, creationflags=DETACHED_FLAGS)
+                capture_output=True, timeout=30, creationflags=0x08000000)
         else:
             subprocess.run(["pkill", "-f", pattern], capture_output=True,
                            timeout=15)
@@ -148,6 +150,14 @@ class Maid:
             self._ps_kill(r["kill_pat"])
         else:
             return False, "no way to sleep this resident"
+        # a kill is a signal, not a fact: confirm the resident actually
+        # let go before telling anyone it is asleep.
+        deadline = time.time() + self.policies.get("sleep_confirm_s", 10)
+        while time.time() < deadline and self.probe(name):
+            time.sleep(0.5)
+        if self.probe(name):
+            self._event(f"{name} sleep: kill signalled, still up")
+            return False, "kill signalled, but the resident is still up"
         with self.lock:
             self.state[name]["suspend_req"] = True
             self.state[name]["alive"] = False  # stamped now; watchdog verifies

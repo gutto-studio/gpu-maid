@@ -13,6 +13,7 @@ DEFAULT_POLICIES = {
     "ensure_timeout_s": 90,   # bounded wait for a cold-started resident
     "settle_timeout_s": 120,  # max wait for VRAM to settle after evictions
     "settle_poll_s": 3,       # settle poll cadence
+    "sleep_confirm_s": 10,    # max wait for a killed resident to actually exit
     "baseline_gb": 0.5,       # CUDA contexts & always_on overhead
 }
 

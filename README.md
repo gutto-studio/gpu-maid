@@ -180,7 +180,8 @@ patterns in daily production (TTS + image + video + LLM sharing one consumer GPU
 - [x] pip packaging (pyproject: `gpumaid` + `gpumaid-agent` entry points) ·
       CI (unittest + markdownlint on Linux/Windows)
 - [x] macOS menu-bar plugin (SwiftBar): [menubar/](menubar/README.md)
-- [ ] Real-GPU validation pass on a live Windows box
+- [x] Real-GPU validation on a live Windows box (RTX 4070S, 15/15 checks —
+      rerun anytime with `python scripts/validate_on_pc.py` on the GPU box)
 - [ ] Demo GIF · PyPI publish · v0.1 launch
 
 ## Scope & support

@@ -56,6 +56,22 @@ class TestMaid(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIn("never", msg)
 
+    def test_sleep_confirms_death_before_reporting_asleep(self):
+        maid = _make_maid(self.tmp)
+        maid.probe = unittest.mock.Mock(return_value=True)  # never dies
+        ok, msg = maid.sleep("demo")
+        self.assertFalse(ok)
+        self.assertIn("still up", msg)
+        self.assertFalse(maid.state["demo"]["suspend_req"])
+
+    def test_sleep_reports_asleep_once_port_is_down(self):
+        maid = _make_maid(self.tmp)
+        maid.probe = unittest.mock.Mock(return_value=False)
+        ok, msg = maid.sleep("demo")
+        self.assertTrue(ok)
+        self.assertEqual(msg, "asleep")
+        self.assertTrue(maid.state["demo"]["suspend_req"])
+
     def test_master_off_persists_across_restart(self):
         _make_maid(self.tmp).master(off=True)
         maid2 = _make_maid(self.tmp)  # same state path: simulates a restart
