@@ -126,7 +126,7 @@ policies:
 
 | Piece     | Runs on                          | Does                                                                          |
 | --------- | -------------------------------- | ----------------------------------------------------------------------------- |
-| `agent/`  | Windows (native, no WSL2/Docker) | HTTP API · resident registry · VRAM gate · wake/cooldown · watchdog · master switch |
+| `agent/`  | Windows (native, no WSL2/Docker) | HTTP API · resident registry · VRAM gate + queue · wake/cooldown · watchdog · master switch · GPU util/temp telemetry |
 | `cli/`    | macOS or any box                 | thin client: `connect / list / wake / sleep / touch / master on/off`           |
 | transport | LAN / Tailscale                  | boring on purpose                                                              |
 

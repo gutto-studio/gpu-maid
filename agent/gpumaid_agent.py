@@ -33,6 +33,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import signal
 import subprocess
 import sys
 import threading
@@ -147,16 +148,61 @@ def should_revive(st, now, policies):
 
 # ---- measured reality --------------------------------------------------------
 
-def nvidia_smi_gb(field):
-    """Query one memory field (GB) from nvidia-smi; None when unavailable."""
+def _int_or_none(s):
+    s = s.strip()
+    return int(s) if s.isdigit() else None
+
+
+def parse_smi_line(raw):
+    """Parse one nvidia-smi csv line: free/total (MiB), util %, temp C.
+
+    Fields that come back "[N/A]" (util on some drivers) parse as None —
+    partial telemetry beats no telemetry.
+    """
+    def gb(s):
+        v = _int_or_none(s)
+        return round(v / 1024, 2) if v is not None else None
+    try:
+        p = [x.strip() for x in raw.strip().splitlines()[0].split(",")]
+    except (IndexError, AttributeError):
+        p = []
+    if len(p) < 4:
+        return {"free_gb": None, "total_gb": None, "util_pct": None,
+                "temp_c": None}
+    return {"free_gb": gb(p[0]), "total_gb": gb(p[1]),
+            "util_pct": _int_or_none(p[2]), "temp_c": _int_or_none(p[3])}
+
+
+def gpu_status():
+    """One-shot GPU telemetry: memory, utilization, temperature."""
     try:
         out = subprocess.run(
-            ["nvidia-smi", f"--query-gpu={field}",
+            ["nvidia-smi",
+             "--query-gpu=memory.free,memory.total,utilization.gpu,temperature.gpu",
              "--format=csv,noheader,nounits"],
             capture_output=True, timeout=8).stdout.decode()
-        return round(int(out.strip().splitlines()[0]) / 1024, 2)
+        return parse_smi_line(out)
     except Exception:
-        return None
+        return {"free_gb": None, "total_gb": None, "util_pct": None,
+                "temp_c": None}
+
+
+def compute_apps():
+    """Processes currently holding VRAM: [{pid, name, mb}] (best effort)."""
+    try:
+        out = subprocess.run(
+            ["nvidia-smi", "--query-compute-apps=pid,process_name,used_memory",
+             "--format=csv,noheader,nounits"],
+            capture_output=True, timeout=8).stdout.decode()
+    except Exception:
+        return []
+    apps = []
+    for line in out.strip().splitlines():
+        parts = [p.strip() for p in line.split(",")]
+        if len(parts) == 3 and parts[0]:
+            apps.append({"pid": parts[0], "name": parts[1],
+                         "mb": _int_or_none(parts[2])})
+    return apps
 
 
 # ---- the maid ----------------------------------------------------------------
@@ -169,6 +215,11 @@ class Maid:
         self.state_path = state_path
         self.log_path = log_path
         self.lock = threading.Lock()
+        # the gate serializes make-room sections: two concurrent wakes would
+        # otherwise evict for each other and fight over the same VRAM.
+        self.gate = threading.Lock()
+        self._gate_holder = None
+        self._gate_waiting = []
         self.master_off = False
         self.state = {
             name: {"alive": False, "fails": 0, "last_revive": 0.0,
@@ -296,7 +347,7 @@ class Maid:
         Returns (ok, detail). Suspended residents stay suspended — waking
         them again later is one ``wake`` away; that is the whole deal.
         """
-        free = nvidia_smi_gb("memory.free")
+        free = gpu_status().get("free_gb")
         evict, still_short = plan_evictions(
             self.residents, self.state, free, needed_gb, target,
             self.policies["baseline_gb"])
@@ -307,7 +358,7 @@ class Maid:
             return True, "vram unknown — gate skipped (no nvidia-smi)"
         deadline = time.time() + self.policies["settle_timeout_s"]
         while time.time() < deadline:
-            free = nvidia_smi_gb("memory.free")
+            free = gpu_status().get("free_gb")
             if free is not None and free >= needed_gb + self.policies["baseline_gb"]:
                 return True, f"settled at {free} GB free"
             time.sleep(self.policies["settle_poll_s"])
@@ -321,6 +372,28 @@ class Maid:
             return False, f"unknown resident {name}", {}
         if self.master_off:
             return False, "master switch is OFF: flip it on first", {}
+        if self.probe(name):
+            with self.lock:
+                self.state[name]["alive"] = True
+                self.state[name]["wanted"] = True
+            self.save_state()
+            return True, "already up", {}
+        # queue at the gate: one make-room ritual at a time, first come first
+        # served (the queue is visible in /list).
+        with self.lock:
+            self._gate_waiting.append(name)
+        with self.gate:
+            with self.lock:
+                if name in self._gate_waiting:
+                    self._gate_waiting.remove(name)
+                self._gate_holder = name
+            try:
+                return self._wake_gated(name)
+            finally:
+                with self.lock:
+                    self._gate_holder = None
+
+    def _wake_gated(self, name):
         with self.lock:
             st = self.state[name]
             st["suspend_req"] = False
@@ -328,17 +401,12 @@ class Maid:
             st["wanted"] = True          # waking = joining the keepalive roster
             st["last_revive"] = time.time()  # watchdog must not double-start
         self.save_state()
-        if self.probe(name):
-            with self.lock:
-                self.state[name]["alive"] = True
-            return True, "already up", {}
         r = self.residents[name]
-        if r.get("protocol") == "cooperative" and self.probe(name) is False \
-                and r.get("start") is None:
+        if r.get("protocol") == "cooperative" and r.get("start") is None:
             return False, "resident is down and has no start command", {}
         ok, detail = self.make_room(name, r.get("vram_gb", 0))
         if not ok:
-            return False, detail, {"vram": nvidia_smi_gb("memory.free")}
+            return False, detail, {"vram": gpu_status().get("free_gb")}
         self.start(name)
         # quick stamp: fast starters show up in /list immediately; slow cold
         # starts are stamped by the watchdog or a later ensure instead.
@@ -450,7 +518,7 @@ class Maid:
 
     def snapshot(self):
         with self.lock:
-            out = {name: {
+            residents = {name: {
                 "alive": st["alive"],
                 "suspended": st["suspend_req"],
                 "wanted": st["wanted"],
@@ -458,8 +526,12 @@ class Maid:
                 "vram_gb": self.residents[name].get("vram_gb", 0),
                 "desc": self.residents[name].get("desc", ""),
             } for name, st in self.state.items()}
-            out["_master_off"] = self.master_off
-        return out
+            gate = {"holder": self._gate_holder,
+                    "waiting": list(self._gate_waiting)}
+            master_off = self.master_off
+        return {"residents": residents, "master_off": master_off,
+                "gate": gate, "gpu": gpu_status(),
+                "compute_apps": compute_apps()}
 
     def _log(self, msg):
         log(msg, self.log_path)
@@ -488,9 +560,7 @@ def build_server(maid, port, token):
                 self._send(200, {"ok": True, "residents": len(maid.residents),
                                  "master_off": maid.master_off})
             elif self.path == "/list":
-                self._send(200, {"residents": maid.snapshot(),
-                                 "vram": {"free_gb": nvidia_smi_gb("memory.free"),
-                                          "total_gb": nvidia_smi_gb("memory.total")}})
+                self._send(200, maid.snapshot())
             else:
                 self._send(404, {"error": "unknown route"})
 
@@ -565,6 +635,17 @@ def main():
 
     port = args.port or cfg["server"].get("port", DEFAULT_PORT)
     token = cfg["server"].get("token", "")
+    if not token:
+        log("WARNING: no token set - anyone on the network can drive this "
+            "agent; set server.token before leaving localhost/LAN")
+
+    def _bye(signum, _frame):
+        log(f"signal {signum}: maid bows out (state persisted)")
+        maid.save_state()
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, _bye)
+    signal.signal(signal.SIGTERM, _bye)
     log(f"gpu-maid agent on :{port}, watching {list(maid.residents)}"
         f"{' [MASTER OFF]' if maid.master_off else ''}")
     build_server(maid, port, token).serve_forever()

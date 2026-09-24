@@ -72,15 +72,30 @@ def cmd_connect(args):
 
 def cmd_list(args):
     _, data = call("GET", base_url(args), "/list")
-    v = data.get("vram", {})
-    print(f"VRAM free {v.get('free_gb')} / {v.get('total_gb')} GB"
-          + ("  [MASTER OFF]" if data["residents"].get("_master_off") else ""))
-    for name, st in sorted(data["residents"].items()):
-        if name.startswith("_"):
-            continue
+    g = data.get("gpu") or {}
+    if g.get("free_gb") is None:
+        head = "GPU: nvidia-smi unavailable"
+    else:
+        head = f"GPU free {g['free_gb']}/{g['total_gb']} GB"
+        if g.get("util_pct") is not None:
+            head += f" · util {g['util_pct']}%"
+        if g.get("temp_c") is not None:
+            head += f" · {g['temp_c']}C"
+    print(head + ("  [MASTER OFF]" if data.get("master_off") else ""))
+    gate = data.get("gate") or {}
+    if gate.get("holder"):
+        waiting = gate.get("waiting") or []
+        extra = f" (waiting: {', '.join(waiting)})" if waiting else ""
+        print(f"gate: {gate['holder']} is making room{extra}")
+    for name, st in sorted((data.get("residents") or {}).items()):
         flag = "up" if st["alive"] else ("suspended" if st["suspended"] else "down")
         print(f"  {name:<14} {flag:<10} {st['protocol']:<12}"
               f"{st['vram_gb']:>5} GB   {st['desc']}")
+    apps = data.get("compute_apps") or []
+    if apps:
+        print(f"  holding VRAM now ({len(apps)}):")
+        for app in apps:
+            print(f"    pid {app['pid']:<7} {app['name'][:28]:<28} {app['mb']} MB")
 
 
 def cmd_wake(args):

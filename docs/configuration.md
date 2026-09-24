@@ -20,6 +20,10 @@ Resident names: `[a-z0-9_-]` — they become the verbs
 | `port` | `9700`  | HTTP port the agent binds on `0.0.0.0`              |
 | `token`| `""`    | when set, POSTs require `Authorization: Bearer <t>` |
 
+An empty `token` prints a warning at startup — acceptable on a home LAN,
+set one before exposing the agent beyond it. GET endpoints are read-only
+and always open.
+
 ## `policies` (defaults shown)
 
 | field               | default | meaning                                                |

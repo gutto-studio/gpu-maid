@@ -122,5 +122,23 @@ class TestConfigValidation(unittest.TestCase):
         self.tmp = tempfile.mkdtemp()
 
 
+class TestParseSmiLine(unittest.TestCase):
+    def test_full_line(self):
+        st = ag.parse_smi_line("2457, 12288, 3, 42")
+        self.assertEqual(st, {"free_gb": 2.4, "total_gb": 12.0,
+                              "util_pct": 3, "temp_c": 42})
+
+    def test_na_fields_parse_as_none(self):
+        st = ag.parse_smi_line("2457, 12288, [N/A], [N/A]")
+        self.assertEqual(st["free_gb"], 2.4)
+        self.assertIsNone(st["util_pct"])
+        self.assertIsNone(st["temp_c"])
+
+    def test_garbage_is_all_none(self):
+        st = ag.parse_smi_line("")
+        self.assertIsNone(st["free_gb"])
+        self.assertIsNone(st["temp_c"])
+
+
 if __name__ == "__main__":
     unittest.main()

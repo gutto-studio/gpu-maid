@@ -25,15 +25,25 @@ script can call the endpoints directly.
     "image": { "alive": false, "suspended": true,  "wanted": true,
                "protocol": "cooperative", "vram_gb": 8, "desc": "..." }
   },
-  "_master_off": false,
-  "vram": { "free_gb": 9.1, "total_gb": 12.0 }
+  "master_off": false,
+  "gate": { "holder": "video", "waiting": ["llm"] },
+  "gpu":  { "free_gb": 9.1, "total_gb": 12.0, "util_pct": 3, "temp_c": 42 },
+  "compute_apps": [ { "pid": "1234", "name": "python.exe", "mb": 4300 } ]
 }
 ```
+
+`gate` shows the make-room queue: which resident is currently being woken
+(`holder`) and who is waiting behind it. `gpu` carries live memory,
+utilization and temperature; `compute_apps` lists the processes currently
+holding VRAM. On boxes without `nvidia-smi` the telemetry fields degrade to
+`null` and the VRAM gate skips itself.
 
 ## POST /wake/{name}
 
 Ask for the room: evicts (per protocol) if VRAM is short, waits for measured
-settle, starts the resident, stamps the keepalive roster.
+settle, starts the resident, stamps the keepalive roster. Wakes are
+serialized through the gate — concurrent requests queue first-come,
+first-served.
 
 - `200 {"ok": true, "msg": "waking" | "already up"}` — ready or on its way
 - `409 {"ok": false, "msg": "..."}` — refused: master off, VRAM never
