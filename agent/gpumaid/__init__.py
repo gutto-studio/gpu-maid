@@ -11,7 +11,7 @@ Modules:
 
 import sys
 
-__version__ = "0.1.0-dev"
+__version__ = "0.1.0"
 
 IS_WIN = sys.platform == "win32"
 # DETACHED | NEW_PROCESS_GROUP | NO_WINDOW — children must outlive the agent

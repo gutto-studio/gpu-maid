@@ -176,16 +176,17 @@ the house.
 
 ## Status
 
-🚧 **v0.1 under active development.** agent, CLI, example config and docs have
-landed — logic-tested (12 unit tests) and smoke-tested end to end; real-GPU
-validation and packaging are next. Extracted from a setup that runs these exact
-patterns in daily production (TTS + image + video + LLM sharing one consumer GPU).
+**v0.1.0 — first public release.** Agent, CLI, registration, desktop
+companions, docs and a real-GPU validation harness (15/15 checks on a live
+RTX 4070S Windows box) ship together. Extracted from a setup that runs these
+exact patterns in daily production (TTS + image + video + LLM sharing one
+consumer GPU).
 
 ## Roadmap
 
 - [x] `agent/` — resident registry, VRAM make-room gate, revive watchdog,
       master switch, idle suspension (stdlib-only package)
-- [x] `cli/` — thin client: `connect / list / wake / sleep / touch / master`
+- [x] `cli/` — thin client: `connect / list / wake / ensure / sleep / touch / events / master`
 - [x] `skills/gpu-maid/SKILL.md` — teach agents the loop and the house rules
 - [x] `examples/` + docs: [install](docs/install.md) ·
       [configuration reference](docs/configuration.md) · [HTTP API](docs/api.md)
@@ -196,7 +197,16 @@ patterns in daily production (TTS + image + video + LLM sharing one consumer GPU
 - [x] Windows system-tray companion (PowerShell, zero-dep): [tray/](tray/README.md)
 - [x] Real-GPU validation on a live Windows box (RTX 4070S, 15/15 checks —
       rerun anytime with `python scripts/validate_on_pc.py` on the GPU box)
-- [ ] Demo GIF · PyPI publish · v0.1 launch
+- [ ] Publish to PyPI
+- [ ] Your feedback → the next iteration
+
+## Feedback
+
+v0.1 was built around one household — yours will differ, and that difference
+is exactly what we want to learn about. If the maid mis-judges your setup
+(wrong eviction, missed detection, a state that reads wrong), open an issue
+with your GPU box config (GPU vendor, OS, resident list) and what happened.
+Patches welcome faster than issues.
 
 ## Scope & support
 
