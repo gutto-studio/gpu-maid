@@ -111,6 +111,18 @@ policies:
 | `cli/`    | macOS 或任意机器              | 薄客户端：`list / wake / run / sleep / master on/off`                    |
 | 传输      | 局域网 / Tailscale            | 故意做得无聊                                                             |
 
+## 教你的 agent 用（SKILL.md）
+
+2026 年，GPU 机的操作者有一大半是 agent。给他们发一份家规：
+
+```bash
+# clone 本仓，然后把技能拷进你运行时的技能目录
+cp -r skills/gpu-maid ~/.claude/skills/    # Claude Code / ZCode 等认识 SKILL.md 的运行时
+```
+
+技能里教的是循环（`list → wake → 原生 API → sleep`），更重要的是家规：agent
+绝不许绕开女仆直接杀住户进程；主人不开口，就不许拉总闸。
+
 ## 什么时候不需要它
 
 - 卡上只住一个服务——没有竞争，就没有痛点；

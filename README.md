@@ -123,6 +123,19 @@ policies:
 | `cli/`    | macOS or any box                 | thin client: `list / wake / run / sleep / master on/off`                       |
 | transport | LAN / Tailscale                  | boring on purpose                                                              |
 
+## Teach your agent (SKILL.md)
+
+In 2026 a large share of GPU-box operators are agents. Ship them the house rules:
+
+```bash
+# clone this repo, then hand the skill to your runtime's skills directory
+cp -r skills/gpu-maid ~/.claude/skills/    # Claude Code / ZCode / SKILL.md-aware runtimes
+```
+
+The skill teaches the loop (`list → wake → native API → sleep`) and, more
+importantly, the house rules: an agent must never kill resident processes behind
+the maid's back, and must not flip the master switch unless the human asked.
+
 ## When you don't need it
 
 - One AI service on the card — no contention, no problem to solve.
@@ -141,6 +154,7 @@ production (TTS + image + video + LLM sharing one consumer GPU).
       load cooldown, watchdog with auto-revive, master switch, HTTP API
 - [ ] `cli/` — thin client: `list / wake / run / sleep / master on/off`
 - [ ] `examples/` — resident configs for an LLM, a TTS voice and an image line
+- [x] `skills/gpu-maid/SKILL.md` — teach agents the loop and the house rules
 - [ ] Docs: install & configuration guide
 
 ## Scope & support
