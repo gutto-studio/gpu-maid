@@ -1,0 +1,46 @@
+{
+  "_note": "gpu-maid residents example — copy, rename and edit. protocol: process = start/stop by command; cooperative = sleep calls its unload endpoint, process stays up; always_on = baseline load, never evicted. vram_gb is the resident's claimed budget used by the make-room planner.",
+  "server": {
+    "port": 9700,
+    "token": ""
+  },
+  "policies": {
+    "baseline_gb": 0.5,
+    "settle_timeout_s": 120,
+    "ensure_timeout_s": 90
+  },
+  "residents": {
+    "llm": {
+      "desc": "Ollama local LLMs",
+      "protocol": "process",
+      "port": 11434,
+      "probe": "http://127.0.0.1:11434/api/tags",
+      "start": "ollama serve",
+      "kill_pat": "ollama",
+      "vram_gb": 5,
+      "wanted_default": true
+    },
+    "image": {
+      "desc": "ComfyUI image line",
+      "protocol": "cooperative",
+      "port": 8188,
+      "probe": "http://127.0.0.1:8188/system_stats",
+      "start": "python main.py --port 8188",
+      "sleep_url": "http://127.0.0.1:8188/free",
+      "sleep_body": { "unload_models": true, "free_memory": true },
+      "vram_gb": 8,
+      "wanted_default": true
+    },
+    "voice": {
+      "desc": "local TTS server",
+      "protocol": "process",
+      "port": 8000,
+      "probe": null,
+      "start": "python serve_tts.py --port 8000",
+      "kill_pat": "serve_tts.py",
+      "vram_gb": 4,
+      "idle_suspend": 1800,
+      "wanted_default": false
+    }
+  }
+}
