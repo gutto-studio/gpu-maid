@@ -364,6 +364,7 @@ class Maid:
                 "wanted": st["wanted"],
                 "protocol": self.residents[name].get("protocol", "process"),
                 "vram_gb": self.residents[name].get("vram_gb", 0),
+                "icon": self.residents[name].get("icon", ""),
                 "desc": self.residents[name].get("desc", ""),
             } for name, st in self.state.items()}
             gate = {"holder": self._gate_holder,

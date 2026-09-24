@@ -41,6 +41,7 @@ and always open.
 | field            | protocols            | meaning                                                     |
 | ---------------- | -------------------- | ----------------------------------------------------------- |
 | `desc`           | all                  | free text, shown in `gpumaid list`                          |
+| `icon`           | all                  | emoji for desktop panels (menu bar / tray), e.g. `"🎨"`     |
 | `protocol`       | all                  | `process` / `cooperative` / `always_on` (default `process`) |
 | `port`           | all                  | TCP probe target (used when `probe` is absent)              |
 | `probe`          | all                  | HTTP URL; a 200 response = alive                            |

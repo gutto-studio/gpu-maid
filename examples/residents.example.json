@@ -12,6 +12,7 @@
   "residents": {
     "llm": {
       "desc": "Ollama local LLMs",
+      "icon": "🧠",
       "protocol": "process",
       "port": 11434,
       "probe": "http://127.0.0.1:11434/api/tags",
@@ -22,6 +23,7 @@
     },
     "image": {
       "desc": "ComfyUI image line",
+      "icon": "🎨",
       "protocol": "cooperative",
       "port": 8188,
       "probe": "http://127.0.0.1:8188/system_stats",
@@ -33,6 +35,7 @@
     },
     "voice": {
       "desc": "local TTS server",
+      "icon": "🎤",
       "protocol": "process",
       "port": 8000,
       "probe": null,
