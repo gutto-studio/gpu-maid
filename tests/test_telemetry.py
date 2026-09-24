@@ -51,5 +51,38 @@ class TestGpuStatus(unittest.TestCase):
         self.assertIsNone(st["total_gb"])
 
 
+class TestSmiTableFallback(unittest.TestCase):
+    TABLE = """
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                       Usage      |
+|=============================================================================|
+|    0   N/A  N/A      1234    C   python.exe                     10735MiB   |
+|    0   N/A  N/A      5678    C   dwm.exe                            0MiB   |
++-----------------------------------------------------------------------------+
+"""
+
+    def test_parses_real_holders(self):
+        apps = telemetry.parse_smi_table(self.TABLE)
+        self.assertIn({"pid": "1234", "name": "python.exe", "mb": 10735},
+                      apps)
+
+    def test_parses_every_table_row_faithfully(self):
+        apps = telemetry.parse_smi_table(self.TABLE)
+        self.assertEqual(len(apps), 2)  # headers ignored, zero-mb kept
+        self.assertEqual(
+            [a["mb"] for a in apps if a["name"] == "dwm.exe"], [0])
+
+    def test_compute_apps_falls_back_when_query_reports_zero(self):
+        query = unittest.mock.Mock(stdout=b" 1234, python.exe, 0\n")
+        table = unittest.mock.Mock(stdout=self.TABLE.encode())
+        with unittest.mock.patch("gpumaid.telemetry.subprocess.run",
+                                 side_effect=[query, table]):
+            apps = telemetry.compute_apps()
+        self.assertIn({"pid": "1234", "name": "python.exe", "mb": 10735},
+                      apps)
+
+
 if __name__ == "__main__":
     unittest.main()

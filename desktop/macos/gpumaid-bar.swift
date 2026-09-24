@@ -223,14 +223,13 @@ final class PanelVC: NSViewController {
         }
 
         // processes holding VRAM right now — real holders only (mb > 0),
-        // shortest name, biggest first
+        // shortest name, biggest first; when the OS cannot attribute
+        // (Windows WDDM reports N/A per process) say so honestly
         clear(appsStack)
         let apps = ((d["compute_apps"] as? [[String: Any]]) ?? [])
             .filter { ($0["mb"] as? Int ?? 0) > 0 }
             .sorted { ($0["mb"] as? Int ?? 0) > ($1["mb"] as? Int ?? 0) }
-        if apps.isEmpty {
-            appsStack.isHidden = true
-        } else {
+        if !apps.isEmpty {
             appsStack.isHidden = false
             appsStack.addView(
                 label("holding VRAM (\(apps.count))", size: 12,
@@ -250,6 +249,23 @@ final class PanelVC: NSViewController {
                 l.translatesAutoresizingMaskIntoConstraints = false
                 l.widthAnchor.constraint(equalToConstant: 252).isActive = true
                 appsStack.addView(l, in: .top)
+            }
+        } else {
+            let free = (d["gpu"] as? [String: Any])?["free_gb"] as? Double
+            if let f = free, f < 2 {
+                appsStack.isHidden = false
+                let note = NSTextField(
+                    labelWithString: "VRAM is in use by processes this OS "
+                        + "does not attribute (WDDM). Totals stay accurate.")
+                note.font = .systemFont(ofSize: 10)
+                note.textColor = .secondaryLabelColor
+                note.lineBreakMode = .byWordWrapping
+                note.maximumNumberOfLines = 2
+                note.translatesAutoresizingMaskIntoConstraints = false
+                note.widthAnchor.constraint(equalToConstant: 252).isActive = true
+                appsStack.addView(note, in: .top)
+            } else {
+                appsStack.isHidden = true
             }
         }
 

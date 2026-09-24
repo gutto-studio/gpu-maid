@@ -22,7 +22,12 @@ def gpu_status():
 
 
 def compute_apps():
-    """Processes currently holding VRAM: [{pid, name, mb}] (best effort)."""
+    """Processes currently holding VRAM: [{pid, name, mb}] (best effort).
+
+    On Windows (WDDM) ``--query-compute-apps`` reports 0/blank per-process
+    memory; when every row comes back empty we fall back to parsing the
+    plain ``nvidia-smi`` process table, which still carries real numbers.
+    """
     try:
         out = subprocess.run(
             ["nvidia-smi", "--query-compute-apps=pid,process_name,used_memory",
@@ -36,4 +41,25 @@ def compute_apps():
         if len(parts) == 3 and parts[0]:
             apps.append({"pid": parts[0], "name": parts[1],
                          "mb": int(parts[2]) if parts[2].isdigit() else None})
+    if any((a["mb"] or 0) > 0 for a in apps):
+        return apps
+    try:
+        out = subprocess.run(["nvidia-smi"], capture_output=True,
+                             timeout=8).stdout.decode()
+    except Exception:
+        return apps
+    return parse_smi_table(out) or apps
+
+
+def parse_smi_table(raw):
+    """Parse the process table of plain `nvidia-smi` output."""
+    apps = []
+    for line in raw.splitlines():
+        t = line.strip(" |").split()
+        if len(t) >= 7 and t[-1].endswith("MiB"):
+            try:
+                mb = int(t[-1][:-3])
+            except ValueError:
+                continue
+            apps.append({"pid": t[3], "name": t[5], "mb": mb})
     return apps
