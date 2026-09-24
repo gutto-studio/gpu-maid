@@ -97,16 +97,21 @@ class Maid:
                          creationflags=DETACHED_FLAGS)
 
     def _ps_kill(self, pattern):
-        """Kill processes whose command line matches pattern (cross-platform)."""
+        """Kill processes whose command line matches pattern (cross-platform).
+
+        Never blocks the maid for long: a stuck kill (AV interference, zombie
+        scan) times out instead of wedging master-off.
+        """
         if IS_WIN:
             subprocess.run(
                 ["powershell", "-NoProfile", "-Command",
                  "Get-CimInstance Win32_Process | Where-Object { "
                  "$_.CommandLine -match '" + pattern + "' } | "
                  "ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"],
-                capture_output=True, creationflags=DETACHED_FLAGS)
+                capture_output=True, timeout=30, creationflags=DETACHED_FLAGS)
         else:
-            subprocess.run(["pkill", "-f", pattern], capture_output=True)
+            subprocess.run(["pkill", "-f", pattern], capture_output=True,
+                           timeout=15)
 
     def sleep_one(self, name, reason="suspended"):
         """Put one resident to sleep, honouring its protocol. Idempotent-ish."""
@@ -281,9 +286,9 @@ class Maid:
             self.master_off = False
             for name in self.state:
                 self.state[name]["wanted"] = False  # on-demand roster: empty
-            self.save_state()
-            self._event("MASTER ON (on-demand mode)")
-            return True, "master on: residents load on demand"
+        self.save_state()
+        self._event("MASTER ON (on-demand mode)")
+        return True, "master on: residents load on demand"
 
     # -- watchdog --
 

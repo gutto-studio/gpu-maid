@@ -149,6 +149,13 @@ The skill teaches the loop (`list → wake → native API → sleep`) and, more
 importantly, the house rules: an agent must never kill resident processes behind
 the maid's back, and must not flip the master switch unless the human asked.
 
+## macOS menu bar
+
+A [SwiftBar](https://swiftbar.app) plugin ships in [`menubar/`](menubar/README.md):
+live GPU memory/util/temperature in the bar, resident roster with one-click
+wake & sleep, the make-room queue and recent events in the dropdown. One
+stdlib script, no Xcode, no web UI.
+
 ## When you don't need it
 
 - One AI service on the card — no contention, no problem to solve.
@@ -172,6 +179,7 @@ patterns in daily production (TTS + image + video + LLM sharing one consumer GPU
       [configuration reference](docs/configuration.md) · [HTTP API](docs/api.md)
 - [x] pip packaging (pyproject: `gpumaid` + `gpumaid-agent` entry points) ·
       CI (unittest + markdownlint on Linux/Windows)
+- [x] macOS menu-bar plugin (SwiftBar): [menubar/](menubar/README.md)
 - [ ] Real-GPU validation pass on a live Windows box
 - [ ] Demo GIF · PyPI publish · v0.1 launch
 
