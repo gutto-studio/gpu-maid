@@ -123,6 +123,9 @@ class Maid:
         r = self.residents[name]
         if r.get("protocol") == "always_on":
             return False, "always_on residents are never evicted"
+        with self.lock:
+            if self.state[name]["suspend_req"] and not self.state[name]["alive"]:
+                return True, "already asleep"
         if r.get("protocol") == "cooperative" and r.get("sleep_url"):
             try:
                 body = (json.dumps(r["sleep_body"]).encode()
@@ -230,7 +233,9 @@ class Maid:
             st["wanted"] = True          # waking = joining the keepalive roster
             st["last_revive"] = time.time()  # watchdog must not double-start
         self.save_state()
-        r = self.residents[name]
+        r = self.residents.get(name)
+        if r is None:
+            return False, f"unknown resident {name}", {}
         if r.get("protocol") == "cooperative" and r.get("start") is None:
             return False, "resident is down and has no start command", {}
         ok, detail = self.make_room(name, r.get("vram_gb", 0))
@@ -364,16 +369,21 @@ class Maid:
     def watch_loop(self):
         while True:
             now = time.time()
-            for name in self.residents:
+            # snapshot the registry: registration can mutate it mid-cycle
+            for name, r in list(self.residents.items()):
                 alive = self.probe(name)
                 with self.lock:
-                    st = self.state[name]
+                    st = self.state.get(name)
+                    if st is None:
+                        continue
                     st["alive"] = alive
                     if alive:
                         st["fails"] = 0
                         continue
                     if self.master_off or st["suspend_req"] or not st["wanted"]:
                         continue
+                    if r.get("start") is None:
+                        continue  # no way to start it — not the maid's problem
                     st["fails"] += 1
                     rev = should_revive(st, now, self.policies)
                 if rev:

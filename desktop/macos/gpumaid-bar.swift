@@ -84,7 +84,6 @@ final class PanelVC: NSViewController {
     private let telemetry = NSTextField(labelWithString: "")
     private let rows = NSStackView()
     private let eventsStack = NSStackView()
-    var onRefresh: (() -> Void)?
     var onResize: ((NSSize) -> Void)?
 
     override func loadView() {
@@ -139,7 +138,21 @@ final class PanelVC: NSViewController {
         eventsStack.spacing = 2
         outer.addView(eventsStack, in: .top)
 
+        // machine room link (only when a dashboard is configured)
+        if dashboardURL() != nil {
+            let link = NSButton(title: "machine room →", target: self,
+                                action: #selector(openDashboard(_:)))
+            link.bezelStyle = .recessed
+            link.controlSize = .small
+            outer.addView(link, in: .top)
+        }
+
         view = v
+    }
+
+    @objc private func openDashboard(_ sender: Any?) {
+        guard let d = dashboardURL(), let u = URL(string: d) else { return }
+        NSWorkspace.shared.open(u)
     }
 
     // MARK: state application
@@ -240,17 +253,15 @@ final class PanelVC: NSViewController {
         line.translatesAutoresizingMaskIntoConstraints = false
         line.widthAnchor.constraint(equalToConstant: 236).isActive = true
 
-        // ● up · ○ not running (by choice) · ✕ crashed (wanted but dead)
+        // two states only: ● running (green) · ○ not running (gray).
+        // crashes are told in the events, not shouted in the roster.
         let alive = (r["alive"] as? Bool) ?? false
         let suspended = (r["suspended"] as? Bool) ?? false
-        let wanted = (r["wanted"] as? Bool) ?? true
-        let fails = (r["fails"] as? Int) ?? 0
-        let crashed = !alive && !suspended && wanted && fails > 0
         let protocolName = r["protocol"] as? String ?? "process"
         let isAlways = protocolName == "always_on"
 
-        let dot = NSTextField(labelWithString: alive ? "●" : (crashed ? "✕" : "○"))
-        dot.textColor = alive ? .systemGreen : (crashed ? .systemRed : .systemGray)
+        let dot = NSTextField(labelWithString: alive ? "●" : "○")
+        dot.textColor = alive ? .systemGreen : .systemGray
         line.addView(dot, in: .top)
 
         let name_ = NSTextField(labelWithString: name)
@@ -353,6 +364,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func request(_ path: String, timeout: TimeInterval = 4) -> URLRequest {
         var r = URLRequest(url: URL(string: url + path)!, timeoutInterval: timeout)
+        r.cachePolicy = .reloadIgnoringLocalCacheData
         if let t = maidToken() {
             r.setValue("Bearer \(t)", forHTTPHeaderField: "Authorization")
         }
@@ -376,13 +388,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self.panel.apply(data: data, events: self.events)
             }
         }
+        // events only matter while the card is open — save the round trip
+        guard popover.isShown else { return }
         get("/events?n=8") { [weak self] data in
             guard let self = self,
                   let ev = data?["events"] as? [[String: Any]] else { return }
             self.events = ev
-            if self.popover.isShown {
-                self.panel.apply(data: self.lastData, events: self.events)
-            }
+            self.panel.apply(data: self.lastData, events: self.events)
         }
     }
 

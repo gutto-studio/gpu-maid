@@ -19,13 +19,14 @@ who gets woken. You talk to her through the `gpu-maid` CLI — never around her.
 
 ```bash
 gpu-maid list                 # residents, their state, VRAM headroom
-gpu-maid wake <resident>      # ask for the room: maid evicts, settles, wakes
+gpu-maid ensure <resident>    # wake if needed and block until ready —
+                              # call this right before sending the job
 # ...do the job via the resident's OWN API (ComfyUI /prompt, Ollama /api/generate).
 #   The maid doesn't proxy jobs; she only guarantees the room is ready.
 gpu-maid sleep <resident>     # optional: tidy up when you're done
 ```
 
-`wake` exits 0 when the resident is ready. If it fails, stop and report —
+`ensure` exits 0 when the resident is ready. If it fails, stop and report —
 see House rules.
 
 ## House rules (important)
