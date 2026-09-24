@@ -256,7 +256,6 @@ final class PanelVC: NSViewController {
         // two states only: ● running (green) · ○ not running (gray).
         // crashes are told in the events, not shouted in the roster.
         let alive = (r["alive"] as? Bool) ?? false
-        let suspended = (r["suspended"] as? Bool) ?? false
         let protocolName = r["protocol"] as? String ?? "process"
         let isAlways = protocolName == "always_on"
 
