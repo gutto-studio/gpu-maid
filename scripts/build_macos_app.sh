@@ -22,7 +22,7 @@ cat > "$APP/Contents/Info.plist" <<'EOF'
 <dict>
   <key>CFBundleName</key><string>gpu-maid</string>
   <key>CFBundleDisplayName</key><string>gpu-maid bar</string>
-  <key>CFBundleIdentifier</key><string>com.jincheng211.gpumaid-bar</string>
+  <key>CFBundleIdentifier</key><string>com.guttostudio.gpumaid-bar</string>
   <key>CFBundleExecutable</key><string>gpumaid-bar</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>0.1.0</string>

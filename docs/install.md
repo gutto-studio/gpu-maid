@@ -12,7 +12,7 @@ Two install paths:
 
 - **From PyPI** (at the v0.1 release): `pip install gpu-maid` — gives you the
   `gpumaid` (CLI) and `gpumaid-agent` (daemon) commands.
-- **From source**: `git clone https://github.com/jincheng211/gpu-maid` — run
+- **From source**: `git clone https://github.com/gutto-studio/gpu-maid` — run
   the agent as `python -m gpumaid` from `agent/`, and the CLI as
   `python3 cli/gpumaid.py`. Both are stdlib-only.
 

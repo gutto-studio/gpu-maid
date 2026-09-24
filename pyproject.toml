@@ -9,7 +9,7 @@ description = "Your GPU's maid - VRAM arbitration butler for AI residents on one
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "Apache-2.0" }
-authors = [{ name = "jincheng211" }]
+authors = [{ name = "gutto Studio" }]
 keywords = ["gpu", "vram", "ollama", "comfyui", "windows", "orchestration"]
 classifiers = [
   "Development Status :: 3 - Alpha",
