@@ -113,6 +113,8 @@ policies:
 | `cli/`    | macOS 或任意机器              | 薄客户端：`list / wake / run / sleep / master on/off`                    |
 | 传输      | 局域网 / Tailscale            | 故意做得无聊                                                             |
 
+文档（英文）：[安装运行](docs/install.md) · [配置参考](docs/configuration.md) · [HTTP API](docs/api.md)
+
 ## 教你的 agent 用（SKILL.md）
 
 2026 年，GPU 机的操作者有一大半是 agent。给他们发一份家规：
@@ -133,8 +135,8 @@ cp -r skills/gpu-maid ~/.claude/skills/    # Claude Code / ZCode 等认识 SKILL
 
 ## 状态
 
-🚧 v0.1 开发中。范围与架构已定盘，正在从作者的生产环境里抽取泛化（单张消费级显卡
-同时养 TTS + 画图 + 视频 + LLM 的真实产线）。
+🚧 v0.1 开发中。agent / CLI / 示例配置 / 文档（英文）已落地，正在做真显卡验证与
+打包（作者的生产线：单张消费级显卡同时养 TTS + 画图 + 视频 + LLM）。
 
 ## 范围与支持
 

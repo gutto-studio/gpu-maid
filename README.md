@@ -122,8 +122,14 @@ policies:
 | Piece     | Runs on                          | Does                                                                          |
 | --------- | -------------------------------- | ----------------------------------------------------------------------------- |
 | `agent/`  | Windows (native, no WSL2/Docker) | HTTP API · resident registry · VRAM gate · wake/cooldown · watchdog · master switch |
-| `cli/`    | macOS or any box                 | thin client: `list / wake / run / sleep / master on/off`                       |
+| `cli/`    | macOS or any box                 | thin client: `connect / list / wake / sleep / touch / master on/off`           |
 | transport | LAN / Tailscale                  | boring on purpose                                                              |
+
+## Docs
+
+- [Install & run](docs/install.md)
+- [Configuration reference](docs/configuration.md)
+- [HTTP API](docs/api.md)
 
 ## Teach your agent (SKILL.md)
 
@@ -146,18 +152,21 @@ the maid's back, and must not flip the master switch unless the human asked.
 
 ## Status
 
-🚧 **v0.1 under active development.** Scope and architecture are set; the agent is
-being extracted and generalized from a setup that runs these exact patterns in daily
-production (TTS + image + video + LLM sharing one consumer GPU).
+🚧 **v0.1 under active development.** agent, CLI, example config and docs have
+landed — logic-tested (12 unit tests) and smoke-tested end to end; real-GPU
+validation and packaging are next. Extracted from a setup that runs these exact
+patterns in daily production (TTS + image + video + LLM sharing one consumer GPU).
 
 ## Roadmap
 
-- [ ] `agent/` — Windows-side daemon: resident registry, VRAM gate, wake/vacate with
-      load cooldown, watchdog with auto-revive, master switch, HTTP API
-- [ ] `cli/` — thin client: `list / wake / run / sleep / master on/off`
-- [ ] `examples/` — resident configs for an LLM, a TTS voice and an image line
+- [x] `agent/` — resident registry, VRAM make-room gate, revive watchdog,
+      master switch, idle suspension (stdlib-only, single file)
+- [x] `cli/` — thin client: `connect / list / wake / sleep / touch / master`
 - [x] `skills/gpu-maid/SKILL.md` — teach agents the loop and the house rules
-- [ ] Docs: install & configuration guide
+- [x] `examples/` + docs: [install](docs/install.md) ·
+      [configuration reference](docs/configuration.md) · [HTTP API](docs/api.md)
+- [ ] Real-GPU validation pass on a live Windows box
+- [ ] Demo GIF · `pip install gpu-maid` packaging · v0.1 launch
 
 ## Scope & support
 
