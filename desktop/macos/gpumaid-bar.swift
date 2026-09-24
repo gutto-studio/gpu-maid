@@ -83,6 +83,7 @@ final class PanelVC: NSViewController {
     private let caption = NSTextField(labelWithString: "")
     private let telemetry = NSTextField(labelWithString: "")
     private let rows = NSStackView()
+    private let appsStack = NSStackView()
     private let eventsStack = NSStackView()
     var onResize: ((NSSize) -> Void)?
 
@@ -131,6 +132,13 @@ final class PanelVC: NSViewController {
         rows.alignment = .leading
         rows.spacing = 2
         outer.addView(rows, in: .top)
+
+        // who is actually holding the VRAM (registered or not)
+        appsStack.orientation = .vertical
+        appsStack.alignment = .leading
+        appsStack.spacing = 2
+        appsStack.isHidden = true
+        outer.addView(appsStack, in: .top)
 
         // events section
         eventsStack.orientation = .vertical
@@ -212,6 +220,32 @@ final class PanelVC: NSViewController {
         }
         if !anyShown {
             rows.addView(label("no residents configured", size: 12), in: .top)
+        }
+
+        // processes holding VRAM right now — registered or not, honest list
+        clear(appsStack)
+        let apps = (d["compute_apps"] as? [[String: Any]]) ?? []
+        if apps.isEmpty {
+            appsStack.isHidden = true
+        } else {
+            appsStack.isHidden = false
+            appsStack.addView(
+                label("holding VRAM (\(apps.count))", size: 12,
+                      color: .secondaryLabelColor), in: .top)
+            for a in apps.prefix(8) {
+                let name = a["name"] as? String ?? "?"
+                let mb = a["mb"] as? Int ?? 0
+                let pid = a["pid"] as? String ?? "?"
+                let l = NSTextField(labelWithString:
+                    "   \(name) · \(mb) MB · pid \(pid)")
+                l.font = .systemFont(ofSize: 11)
+                l.textColor = .secondaryLabelColor
+                l.lineBreakMode = .byTruncatingTail
+                l.maximumNumberOfLines = 1
+                l.translatesAutoresizingMaskIntoConstraints = false
+                l.widthAnchor.constraint(equalToConstant: 252).isActive = true
+                appsStack.addView(l, in: .top)
+            }
         }
 
         // events
